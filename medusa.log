@@ -1,0 +1,10 @@
+
+> strapi-medusa-commerce@0.1.0 dev:medusa
+> npm --prefix apps/medusa run dev README.md apps docker-compose.yml medusa.log package.json
+
+
+> apps/medusa@0.0.1 dev
+> medusa develop README.md apps docker-compose.yml medusa.log package.json
+
+[31merror[39m:   Unknown arguments: README.md, apps, docker-compose.yml, medusa.log, package.json
+

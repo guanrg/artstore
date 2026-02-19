@@ -1,0 +1,11 @@
+.npm-cache/
+node_modules/
+apps/*/node_modules/
+apps/storefront/.next/
+apps/storefront/.env.local
+apps/medusa/.medusa/
+apps/medusa/.env
+apps/strapi/.tmp/
+apps/strapi/.cache/
+apps/strapi/build/
+apps/strapi/dist/

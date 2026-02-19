@@ -1,0 +1,17 @@
+{
+  "name": "strapi-medusa-commerce",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:medusa": "npm --prefix apps/medusa run dev",
+    "dev:strapi": "npm --prefix apps/strapi run develop",
+    "dev:storefront": "npm --prefix apps/storefront run dev",
+    "build:storefront": "npm --prefix apps/storefront run build",
+    "infra:up": "docker compose up -d postgres redis",
+    "infra:down": "docker compose down",
+    "check": "npm --prefix apps/storefront run lint"
+  }
+}
