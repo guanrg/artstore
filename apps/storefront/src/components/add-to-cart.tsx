@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { emitCartUpdated } from "@/lib/cart-events"
+import { dict, type Locale } from "@/lib/i18n-dict"
 
 type OptionValue = {
   id: string
@@ -39,10 +40,13 @@ function matchVariant(variants: Variant[], selected: Record<string, string>) {
 export function AddToCart({
   options,
   variants,
+  locale = "en",
 }: {
   options: ProductOption[]
   variants: Variant[]
+  locale?: Locale
 }) {
+  const t = dict[locale].addToCart
   const [selected, setSelected] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       options.map((opt) => [opt.id, opt.values?.[0]?.value ?? ""]),
@@ -57,7 +61,7 @@ export function AddToCart({
 
   const onSubmit = async () => {
     if (!variant?.id) {
-      setMessage("Please select a valid variant.")
+      setMessage(t.selectVariant)
       return
     }
 
@@ -71,17 +75,17 @@ export function AddToCart({
     const json = (await res.json()) as { message?: string }
 
     if (!res.ok) {
-      setMessage(json.message ?? "Add to cart failed")
+      setMessage(json.message ?? t.addFailed)
     } else {
       emitCartUpdated()
-      setMessage("Added to cart.")
+      setMessage(t.added)
     }
     setPending(false)
   }
 
   return (
     <div className="mt-6 rounded-xl border border-slate-200 p-4">
-      <p className="text-sm font-semibold">Buy</p>
+      <p className="text-sm font-semibold">{t.title}</p>
       <div className="mt-3 space-y-3">
         {options.map((opt) => (
           <label key={opt.id} className="block text-sm">
@@ -101,7 +105,7 @@ export function AddToCart({
         ))}
 
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Quantity</span>
+          <span className="mb-1 block font-medium">{t.quantity}</span>
           <input
             type="number"
             min={1}
@@ -112,7 +116,7 @@ export function AddToCart({
         </label>
 
         <p className="text-sm font-semibold text-slate-900">
-          {typeof currentPrice === "number" ? `Selected price: $ ${currentPrice}` : "Selected price unavailable"}
+          {typeof currentPrice === "number" ? `${t.selectedPrice}: $ ${currentPrice}` : t.selectedPriceUnavailable}
         </p>
 
         <button
@@ -121,10 +125,10 @@ export function AddToCart({
           disabled={pending || !variant?.id}
           className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {pending ? "Adding..." : "Add to cart"}
+          {pending ? t.adding : t.add}
         </button>
         <a href="/cart" className="ml-3 text-sm font-medium text-orange-700 hover:text-orange-900">
-          Go to cart
+          {t.goToCart}
         </a>
         {message ? <p className="text-sm text-slate-600">{message}</p> : null}
       </div>

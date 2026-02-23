@@ -1,7 +1,8 @@
 import Link from "next/link"
-import Image from "next/image"
 import { notFound } from "next/navigation"
 import { AddToCart } from "@/components/add-to-cart"
+import { ProductGallery } from "@/components/product-gallery"
+import { getServerDict } from "@/lib/i18n-server"
 
 type MedusaProduct = {
   id: string
@@ -10,6 +11,10 @@ type MedusaProduct = {
   description?: string
   handle?: string
   thumbnail?: string
+  images?: Array<{
+    id: string
+    url: string
+  }>
   options?: Array<{
     id: string
     title: string
@@ -48,7 +53,7 @@ async function fetchProductBySlug(slug: string): Promise<MedusaProduct | null> {
       return null
     }
 
-    const fields = encodeURIComponent("*variants.calculated_price,+variants.calculated_price")
+    const fields = encodeURIComponent("*images,*variants.calculated_price,+variants.calculated_price")
     const byIdRes = await fetch(`${baseUrl}/store/products/${slug}?region_id=${regionId}&fields=${fields}`, {
       headers,
       next: { revalidate: 30 },
@@ -64,9 +69,9 @@ async function fetchProductBySlug(slug: string): Promise<MedusaProduct | null> {
     const byHandleRes = await fetch(
       `${baseUrl}/store/products?handle=${encodeURIComponent(slug)}&limit=1&region_id=${regionId}&fields=${fields}`,
       {
-      headers,
-      next: { revalidate: 30 },
-      },
+        headers,
+        next: { revalidate: 30 },
+      }
     )
 
     if (!byHandleRes.ok) {
@@ -93,6 +98,7 @@ export default async function ProductDetailPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
+  const { locale, t } = await getServerDict()
   const { slug } = await params
   const product = await fetchProductBySlug(slug)
 
@@ -101,90 +107,89 @@ export default async function ProductDetailPage({
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8 text-slate-900">
+    <main className="min-h-screen bg-gradient-to-b from-zinc-950 via-black to-zinc-950 p-8 text-zinc-100">
       <div className="mx-auto max-w-3xl space-y-6">
-        <Link href="/" className="inline-flex text-sm font-medium text-orange-700 hover:text-orange-900">
-          Back to products
+        <Link href="/" className="inline-flex text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">
+          {t.product.back}
         </Link>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-          <p className="text-xs uppercase tracking-widest text-orange-600">Product Detail</p>
+        <section className="rounded-2xl border border-[var(--border)] bg-zinc-900/70 p-8 shadow-sm">
+          <p className="text-xs uppercase tracking-widest text-[var(--accent)]">{t.product.detail}</p>
           <h1 className="mt-2 text-3xl font-bold">{product.title}</h1>
-          <p className="mt-2 text-slate-600">{product.subtitle ?? "No subtitle"}</p>
-          <p className="mt-2 text-lg font-semibold text-slate-900">
-            {getFromPrice(product) !== null ? `From $ ${getFromPrice(product)}` : "Price unavailable"}
+          <p className="mt-2 text-zinc-400">{product.subtitle ?? t.product.noSubtitle}</p>
+          <p className="mt-2 text-lg font-semibold text-zinc-100">
+            {getFromPrice(product) !== null ? `${t.product.from} $ ${getFromPrice(product)}` : t.product.priceUnavailable}
           </p>
 
-          <div className="mt-6 overflow-hidden rounded-xl bg-slate-100">
-            {product.thumbnail ? (
-              <Image
-                src={product.thumbnail}
-                alt={product.title}
-                width={960}
-                height={540}
-                className="h-72 w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-72 items-center justify-center text-sm text-slate-500">No image</div>
+          <ProductGallery
+            title={product.title}
+            labels={t.gallery}
+            imageUrls={Array.from(
+              new Set(
+                [
+                  ...(product.images ?? []).map((img) => img.url).filter(Boolean),
+                  product.thumbnail ?? "",
+                ].filter(Boolean)
+              )
             )}
-          </div>
+          />
 
-          <div className="mt-6 space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
+          <div className="mt-6 space-y-2 rounded-xl bg-zinc-950/70 p-4 text-sm">
             <p>
-              <span className="font-medium">ID:</span> {product.id}
+              <span className="font-medium">{t.product.id}:</span> {product.id}
             </p>
             <p>
-              <span className="font-medium">Handle:</span> {product.handle ?? "N/A"}
+              <span className="font-medium">{t.product.handle}:</span> {product.handle ?? "N/A"}
             </p>
           </div>
 
-          <div className="mt-6 rounded-xl border border-slate-200 p-4">
-            <p className="text-sm font-semibold">Options</p>
+          <div className="mt-6 rounded-xl border border-[var(--border)] p-4">
+            <p className="text-sm font-semibold">{t.product.options}</p>
             {(product.options?.length ?? 0) > 0 ? (
               <div className="mt-3 space-y-2 text-sm">
                 {(product.options ?? []).map((opt) => (
                   <div key={opt.id}>
                     <p className="font-medium">{opt.title}</p>
-                    <p className="text-slate-600">
-                      {(opt.values ?? []).map((v) => v.value).join(" / ") || "No values"}
+                    <p className="text-zinc-400">
+                      {(opt.values ?? []).map((v) => v.value).join(" / ") || t.product.noValues}
                     </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-slate-500">No options</p>
+              <p className="mt-2 text-sm text-zinc-500">{t.product.noOptions}</p>
             )}
           </div>
 
-          <div className="mt-6 rounded-xl border border-slate-200 p-4">
-            <p className="text-sm font-semibold">Variants</p>
+          <div className="mt-6 rounded-xl border border-[var(--border)] p-4">
+            <p className="text-sm font-semibold">{t.product.variants}</p>
             {(product.variants?.length ?? 0) > 0 ? (
               <div className="mt-3 space-y-2">
                 {(product.variants ?? []).map((variant) => (
-                  <div key={variant.id} className="rounded-lg bg-slate-50 p-3 text-sm">
-                    <p className="font-medium">{variant.title || "Variant"}</p>
-                    <p className="text-slate-600">SKU: {variant.sku || "N/A"}</p>
-                    <p className="text-slate-700">
+                  <div key={variant.id} className="rounded-lg bg-zinc-950/70 p-3 text-sm">
+                    <p className="font-medium">{variant.title || t.product.variant}</p>
+                    <p className="text-zinc-400">{t.product.sku}: {variant.sku || "N/A"}</p>
+                    <p className="text-zinc-300">
                       {typeof variant.calculated_price?.calculated_amount === "number"
                         ? `$ ${variant.calculated_price.calculated_amount}`
-                        : "No price"}
+                        : t.product.noPrice}
                     </p>
-                    <p className="text-slate-600">
-                      {(variant.options ?? []).map((o) => o.value).filter(Boolean).join(" / ") || "No option values"}
+                    <p className="text-zinc-400">
+                      {(variant.options ?? []).map((o) => o.value).filter(Boolean).join(" / ") || t.product.noOptionValues}
                     </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-slate-500">No variants</p>
+              <p className="mt-2 text-sm text-zinc-500">{t.product.noVariants}</p>
             )}
           </div>
 
-          <article className="mt-6 text-slate-700">
-            {product.description ?? "No description yet."}
+          <article className="mt-6 text-zinc-300">
+            {product.description ?? t.product.noDescription}
           </article>
 
-          <AddToCart options={product.options ?? []} variants={product.variants ?? []} />
+          <AddToCart locale={locale} options={product.options ?? []} variants={product.variants ?? []} />
         </section>
       </div>
     </main>

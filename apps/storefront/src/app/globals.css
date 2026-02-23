@@ -1,19 +1,83 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fffaf5;
-  --foreground: #132134;
+  --background: #090909;
+  --foreground: #f4f4f5;
+  --surface: #111113;
+  --border: #29292f;
+  --accent: #d2a86a;
+  --accent-strong: #e7c48f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), "Segoe UI", sans-serif;
+  font-family: var(--font-body), "Segoe UI", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading), Georgia, serif;
+  letter-spacing: 0.01em;
+}
+
+.art-shell {
+  background:
+    radial-gradient(80rem 28rem at 85% -15%, #3a2c1a66 0%, transparent 58%),
+    radial-gradient(50rem 22rem at -10% 15%, #2c221733 0%, transparent 52%),
+    linear-gradient(180deg, #0b0b0d 0%, #0d0d10 45%, #0a0a0c 100%);
+}
+
+.glass-card {
+  background: color-mix(in srgb, var(--surface) 92%, black 8%);
+  border: 1px solid color-mix(in srgb, var(--border) 90%, black 10%);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.accent-link {
+  color: var(--accent-strong);
+  transition: color 0.2s ease;
+}
+
+.accent-link:hover {
+  color: var(--accent);
+}
+
+.reveal-up {
+  animation: reveal-up 0.55s ease both;
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-soft {
+  from {
+    opacity: 0.2;
+    transform: scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fade-soft {
+  animation: fade-soft 1.1s ease;
 }

@@ -1,5 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
+import { getServerDict } from "@/lib/i18n-server"
 
 type MedusaProduct = {
   id: string
@@ -17,7 +18,6 @@ type MedusaProduct = {
   options?: Array<{
     id: string
     title: string
-    values?: Array<{ id: string; value: string }>
   }>
 }
 
@@ -51,7 +51,7 @@ async function getMedusaProducts(): Promise<{ data: MedusaProduct[]; error?: str
     }
 
     const query = new URLSearchParams({
-      limit: "8",
+      limit: "12",
       region_id: auRegionId,
       fields: "*variants.calculated_price,+variants.calculated_price",
     })
@@ -75,7 +75,7 @@ async function getStrapiArticles(): Promise<{ data: StrapiArticle[]; error?: str
   const baseUrl = process.env.STRAPI_URL ?? "http://localhost:1337"
 
   try {
-    const res = await fetch(`${baseUrl}/api/articles?pagination[limit]=4`, {
+    const res = await fetch(`${baseUrl}/api/articles?pagination[limit]=3`, {
       next: { revalidate: 30 },
     })
 
@@ -115,84 +115,143 @@ function getFromPrice(product: MedusaProduct) {
   return Math.min(...amounts)
 }
 
+function formatAud(amount: number | null, priceOnRequest: string) {
+  if (amount === null) return priceOnRequest
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
 export default async function Home() {
+  const { locale, t } = await getServerDict()
   const [medusa, strapi] = await Promise.all([getMedusaProducts(), getStrapiArticles()])
 
-  return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8 text-slate-900">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <header className="rounded-2xl border border-orange-200 bg-white p-8 shadow-sm">
-          <p className="text-sm uppercase tracking-widest text-orange-600">Starter</p>
-          <h1 className="mt-2 text-3xl font-bold">Strapi + Medusa Commerce</h1>
-          <p className="mt-3 text-slate-600">
-            Products come from Medusa and content comes from Strapi.
-          </p>
-        </header>
+  const editorial =
+    strapi.data.length > 0
+      ? strapi.data
+      : [
+          {
+            id: 9001,
+            title: locale === "zh" ? "解读青铜表面与包浆" : "Reading Bronze Surface and Patina",
+            excerpt:
+              locale === "zh"
+                ? "氧化层、铸造痕迹与修复记录，都会直接影响收藏价值。"
+                : "How oxidation, casting marks, and restoration traces affect value.",
+          },
+          {
+            id: 9002,
+            title: locale === "zh" ? "古典油画收藏实操指南" : "Collecting Oil Paintings with Confidence",
+            excerpt:
+              locale === "zh"
+                ? "从画布状态、颜料稳定性到来源文献，快速完成基础判断。"
+                : "A practical checklist for canvas condition, pigment stability, and provenance.",
+          },
+          {
+            id: 9003,
+            title: locale === "zh" ? "艺术品与现代空间陈列" : "Staging Art in Contemporary Interiors",
+            excerpt:
+              locale === "zh"
+                ? "利用光线与留白，让单件作品成为空间视觉焦点。"
+                : "Use lighting and negative space to let a single piece command attention.",
+          },
+        ]
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Products (Medusa)</h2>
-            <span className="text-sm text-slate-500">{medusa.data.length} items</span>
+  return (
+    <main className="art-shell min-h-screen p-6 md:p-8">
+      <div className="mx-auto max-w-6xl space-y-10">
+        <section className="glass-card reveal-up relative overflow-hidden rounded-3xl p-7 md:p-10">
+          <div className="pointer-events-none absolute -right-28 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,#b7864860_0%,transparent_66%)]" />
+          <div className="pointer-events-none absolute -left-28 bottom-0 h-48 w-48 rounded-full bg-[radial-gradient(circle,#cdb08a55_0%,transparent_70%)]" />
+          <div className="relative grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
+            <div>
+              <p className="text-xs uppercase tracking-[0.33em] text-zinc-500">{t.home.heroTag}</p>
+              <h1 className="mt-3 text-5xl leading-[0.98] text-zinc-100 md:text-6xl">
+                {t.home.heroTitle1}
+                <br />
+                {t.home.heroTitle2}
+              </h1>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-300 md:text-base">{t.home.heroDesc}</p>
+              <div className="mt-6 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full border border-[var(--border)] bg-zinc-900/70 px-3 py-1 text-zinc-200">{t.home.chip1}</span>
+                <span className="rounded-full border border-[var(--border)] bg-zinc-900/70 px-3 py-1 text-zinc-200">{t.home.chip2}</span>
+                <span className="rounded-full border border-[var(--border)] bg-zinc-900/70 px-3 py-1 text-zinc-200">{t.home.chip3}</span>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-zinc-900/70 p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t.home.statusTitle}</p>
+              <p className="mt-3 text-3xl text-zinc-100">{medusa.data.length}</p>
+              <p className="mt-1 text-sm text-zinc-400">{t.home.statusDesc}</p>
+              <Link href="/account/register" className="accent-link mt-4 inline-block text-sm font-semibold">
+                {t.home.createAccount}
+              </Link>
+            </div>
           </div>
-          {medusa.error ? <p className="text-sm text-rose-600">{medusa.error}</p> : null}
-          <div className="grid gap-4 md:grid-cols-4">
-            {medusa.data.map((item) => (
+        </section>
+
+        <section className="reveal-up rounded-3xl border border-[var(--border)] bg-zinc-950/65 p-6 md:p-7">
+          <div className="mb-5 flex items-end justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">{t.home.catalogue}</p>
+              <h2 className="text-3xl text-zinc-100">{t.home.featured}</h2>
+            </div>
+            <p className="text-sm text-zinc-500">{medusa.data.length} {t.home.listed}</p>
+          </div>
+
+          {medusa.error ? <p className="mb-4 text-sm text-rose-700">{medusa.error}</p> : null}
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {medusa.data.map((item, index) => (
               <Link
                 key={item.id}
                 href={`/products/${item.handle ?? item.id}`}
-                className="group rounded-xl border border-slate-200 p-4 transition hover:border-orange-300 hover:shadow-sm"
+                className={`group overflow-hidden rounded-2xl border border-[var(--border)] bg-zinc-900/70 transition hover:-translate-y-0.5 hover:shadow-xl ${
+                  index % 5 === 0 ? "md:col-span-2" : ""
+                }`}
               >
                 <article>
-                  <div className="mb-3 h-36 overflow-hidden rounded-lg bg-slate-100">
+                  <div className={`${index % 5 === 0 ? "h-72" : "h-56"} overflow-hidden bg-zinc-800`}>
                     {item.thumbnail ? (
                       <Image
                         src={item.thumbnail}
                         alt={item.title}
-                        width={320}
-                        height={220}
-                        className="h-full w-full object-cover"
+                        width={900}
+                        height={700}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-slate-500">No image</div>
+                      <div className="flex h-full items-center justify-center text-xs text-zinc-500">{t.home.noImage}</div>
                     )}
                   </div>
-                  <p className="line-clamp-1 font-medium group-hover:text-orange-700">{item.title}</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-600">{item.subtitle ?? "No subtitle"}</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">
-                    {getFromPrice(item) !== null ? `$ ${getFromPrice(item)}` : "Price unavailable"}
-                  </p>
-                  <p className="mt-2 text-xs text-slate-500">
-                    {(item.options ?? []).map((opt) => opt.title).join(" / ") || "No options"}
-                  </p>
-                  <p className="mt-3 text-xs font-medium text-orange-600">View details</p>
+                  <div className="p-4">
+                    <p className="line-clamp-1 text-lg text-zinc-100">{item.title}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{item.subtitle || t.home.curatedPiece}</p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-zinc-100">{formatAud(getFromPrice(item), t.home.priceOnRequest)}</p>
+                      <p className="accent-link text-xs font-semibold uppercase tracking-[0.18em]">{t.home.viewWork}</p>
+                    </div>
+                    <p className="mt-2 text-xs text-zinc-500">
+                      {(item.options ?? []).map((opt) => opt.title).join(" / ") || t.home.standardDetails}
+                    </p>
+                  </div>
                 </article>
               </Link>
             ))}
-            {medusa.data.length === 0 ? (
-              <p className="text-sm text-slate-500">No products yet. Create products in Medusa admin.</p>
-            ) : null}
           </div>
+
+          {medusa.data.length === 0 ? <p className="mt-4 text-sm text-zinc-500">{t.home.noProducts}</p> : null}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Content (Strapi)</h2>
-            <span className="text-sm text-slate-500">{strapi.data.length} entries</span>
-          </div>
-          {strapi.error ? <p className="text-sm text-rose-600">{strapi.error}</p> : null}
-          <div className="space-y-3">
-            {strapi.data.map((item) => (
-              <article key={item.id} className="rounded-xl border border-slate-200 p-4">
-                <p className="font-medium">{item.title ?? `Article #${item.id}`}</p>
-                <p className="mt-1 text-sm text-slate-600">{item.excerpt || "No excerpt"}</p>
-              </article>
-            ))}
-            {strapi.data.length === 0 ? (
-              <p className="text-sm text-slate-500">
-                No content yet. Create an `Article` collection type in Strapi and allow Public `find` / `findOne`.
-              </p>
-            ) : null}
-          </div>
+        <section className="reveal-up grid gap-5 rounded-3xl border border-[var(--border)] bg-zinc-950/65 p-6 md:grid-cols-3">
+          {strapi.error ? <p className="md:col-span-3 text-sm text-rose-700">{strapi.error}</p> : null}
+          {editorial.map((item) => (
+            <article key={item.id} className="rounded-2xl border border-[var(--border)] bg-zinc-900/70 p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t.home.editorial}</p>
+              <h3 className="mt-2 text-2xl leading-tight text-zinc-100">{item.title || t.home.untitled}</h3>
+              <p className="mt-2 text-sm text-zinc-400">{item.excerpt || t.home.noExcerpt}</p>
+            </article>
+          ))}
         </section>
       </div>
     </main>

@@ -4,6 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
 import { emitCartUpdated } from "@/lib/cart-events"
+import { getClientDict } from "@/lib/i18n-client"
 
 type CartItem = {
   id: string
@@ -33,6 +34,7 @@ function fmt(amount: number, currencyCode?: string) {
 }
 
 export default function CartPage() {
+  const [{ t }, setI18n] = useState(getClientDict)
   const [cart, setCart] = useState<Cart | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -42,7 +44,7 @@ export default function CartPage() {
     const res = await fetch("/api/cart")
     const json = (await res.json()) as { cart?: Cart; message?: string }
     if (!res.ok) {
-      setError(json.message ?? "Failed to load cart")
+      setError(json.message ?? t.cart.failedLoad)
       return
     }
     setCart(json.cart ?? null)
@@ -57,26 +59,27 @@ export default function CartPage() {
       const json = (await res.json()) as { cart?: Cart; message?: string }
       if (!active) return
       if (!res.ok) {
-        setError(json.message ?? "Failed to load cart")
+        setError(json.message ?? t.cart.failedLoad)
       } else {
         setCart(json.cart ?? null)
         setError("")
       }
+      setI18n(getClientDict())
       setLoading(false)
     }
     load().catch(() => {
       if (!active) return
-      setError("Failed to load cart")
+      setError(t.cart.failedLoad)
       setLoading(false)
     })
     return () => {
       active = false
     }
-  }, [])
+  }, [t.cart.failedLoad])
 
   const totalQty = useMemo(
     () => (cart?.items ?? []).reduce((sum, item) => sum + item.quantity, 0),
-    [cart],
+    [cart]
   )
 
   const updateQty = async (lineId: string, quantity: number) => {
@@ -105,7 +108,7 @@ export default function CartPage() {
     })
     const json = (await res.json()) as { message?: string }
     if (!res.ok) {
-      setError(json.message ?? "Failed to apply promo code")
+      setError(json.message ?? t.cart.failedApply)
       return
     }
     setPromoCode("")
@@ -120,34 +123,34 @@ export default function CartPage() {
     })
     const json = (await res.json()) as { message?: string }
     if (!res.ok) {
-      setError(json.message ?? "Failed to remove promo code")
+      setError(json.message ?? t.cart.failedRemove)
       return
     }
     await refresh()
   }
 
   if (loading) {
-    return <main className="p-8">Loading cart...</main>
+    return <main className="p-8">{t.cart.loading}</main>
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8">
-      <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <main className="min-h-screen bg-gradient-to-b from-zinc-950 via-black to-zinc-950 p-8 text-zinc-100">
+      <div className="mx-auto max-w-4xl rounded-2xl border border-[var(--border)] bg-zinc-900/70 p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Cart</h1>
-          <Link href="/" className="text-sm font-medium text-orange-700">
-            Continue shopping
+          <h1 className="text-2xl font-bold">{t.cart.title}</h1>
+          <Link href="/" className="text-sm font-medium text-[var(--accent)]">
+            {t.cart.continueShopping}
           </Link>
         </div>
         {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
         {(cart?.items ?? []).length === 0 ? (
-          <p className="text-sm text-slate-500">Your cart is empty.</p>
+          <p className="text-sm text-zinc-500">{t.cart.empty}</p>
         ) : (
           <div className="space-y-3">
             {(cart?.items ?? []).map((item) => (
-              <article key={item.id} className="flex gap-4 rounded-xl border border-slate-200 p-4">
-                <div className="h-20 w-20 overflow-hidden rounded-md bg-slate-100">
+              <article key={item.id} className="flex gap-4 rounded-xl border border-[var(--border)] p-4">
+                <div className="h-20 w-20 overflow-hidden rounded-md bg-zinc-800">
                   {item.thumbnail ? (
                     <Image
                       src={item.thumbnail}
@@ -159,23 +162,21 @@ export default function CartPage() {
                   ) : null}
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-slate-900">
-                    {item.title}
-                  </p>
+                  <p className="font-medium text-zinc-100">{item.title}</p>
                   {item.product_handle || item.product_id ? (
                     <Link
                       href={`/products/${item.product_handle ?? item.product_id ?? ""}`}
-                      className="text-xs font-medium text-orange-700 hover:text-orange-900"
+                      className="text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]"
                     >
-                      View product
+                      {t.cart.viewProduct}
                     </Link>
                   ) : null}
-                  <p className="text-sm text-slate-600">{item.variant_title ?? "Variant"}</p>
+                  <p className="text-sm text-zinc-400">{item.variant_title ?? t.cart.variant}</p>
                   <div className="mt-2 flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => updateQty(item.id, Math.max(1, item.quantity - 1))}
-                      className="rounded border border-slate-300 px-2"
+                      className="rounded border border-[var(--border)] px-2"
                     >
                       -
                     </button>
@@ -183,20 +184,20 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={() => updateQty(item.id, item.quantity + 1)}
-                      className="rounded border border-slate-300 px-2"
+                      className="rounded border border-[var(--border)] px-2"
                     >
                       +
                     </button>
                     <button
                       type="button"
                       onClick={() => remove(item.id)}
-                      className="ml-3 text-sm text-rose-600 hover:text-rose-700"
+                      className="ml-3 text-sm text-rose-400 hover:text-rose-300"
                     >
-                      Remove
+                      {t.cart.remove}
                     </button>
                   </div>
                 </div>
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-zinc-300">
                   {fmt((item.unit_price ?? 0) * item.quantity, cart?.currency_code)}
                 </p>
               </article>
@@ -204,20 +205,20 @@ export default function CartPage() {
           </div>
         )}
 
-        <div className="mt-6 rounded-xl bg-slate-50 p-4 text-sm">
+        <div className="mt-6 rounded-xl bg-zinc-950/70 p-4 text-sm">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <input
               value={promoCode}
               onChange={(e) => setPromoCode(e.target.value)}
-              placeholder="Promo code"
-              className="rounded-md border border-slate-300 px-3 py-1.5"
+              placeholder={t.cart.promoPlaceholder}
+              className="rounded-md border border-[var(--border)] bg-zinc-900 px-3 py-1.5"
             />
             <button
               type="button"
               onClick={applyPromo}
-              className="rounded-md border border-slate-300 px-3 py-1.5 hover:border-slate-400"
+              className="rounded-md border border-[var(--border)] px-3 py-1.5 hover:border-zinc-500"
             >
-              Apply
+              {t.cart.apply}
             </button>
           </div>
           {(cart?.promotions ?? []).length > 0 ? (
@@ -234,18 +235,18 @@ export default function CartPage() {
               ))}
             </div>
           ) : null}
-          <p>Total items: {totalQty}</p>
+          <p>{t.cart.totalItems}: {totalQty}</p>
           <p>
-            Subtotal: {fmt(cart?.subtotal ?? 0, cart?.currency_code)}
+            {t.cart.subtotal}: {fmt(cart?.subtotal ?? 0, cart?.currency_code)}
           </p>
           <p>
-            Total: {fmt(cart?.total ?? 0, cart?.currency_code)}
+            {t.cart.total}: {fmt(cart?.total ?? 0, cart?.currency_code)}
           </p>
           <Link
             href="/checkout"
-            className="mt-3 inline-flex rounded-md bg-orange-600 px-4 py-2 font-medium text-white hover:bg-orange-700"
+            className="mt-3 inline-flex rounded-md bg-[var(--accent)] px-4 py-2 font-medium text-black hover:bg-[var(--accent-strong)]"
           >
-            Proceed to checkout
+            {t.cart.checkout}
           </Link>
         </div>
       </div>
