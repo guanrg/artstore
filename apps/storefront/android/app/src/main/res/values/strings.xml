@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Storefront</string>
+    <string name="title_activity_main">Storefront</string>
+    <string name="package_name">com.dev026.storefront</string>
+    <string name="custom_url_scheme">com.dev026.storefront</string>
+</resources>

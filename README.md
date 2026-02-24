@@ -14,6 +14,14 @@ Monorepo structure:
 
 ## Quick start
 
+Use one command to start infra + all services:
+
+```bash
+npm run dev:all
+```
+
+Or start them manually:
+
 1. Start infrastructure:
 
 ```bash
@@ -49,6 +57,12 @@ npm run dev:storefront
 - Storefront: `http://localhost:3000`
 - Strapi: `http://localhost:1337`
 - Medusa API/Admin: `http://localhost:9000`
+
+## Android app shell (Capacitor)
+
+- Sync Android project files: `npm run android:sync`
+- Open Android Studio project: `npm run android:open`
+- Run from CLI (requires Android SDK/emulator): `npm run android:run`
 
 ## First-time setup notes
 
