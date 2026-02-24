@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "dev:all": "node scripts/dev-all.js",
+    "dev:all:clean": "node scripts/dev-all.js --clean",
     "dev:medusa": "npm --prefix apps/medusa run dev",
     "dev:strapi": "npm --prefix apps/strapi run develop",
     "dev:storefront": "npm --prefix apps/storefront run dev",

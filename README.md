@@ -56,7 +56,7 @@ npm run dev:storefront
 
 - Storefront: `http://localhost:3000`
 - Strapi: `http://localhost:1337`
-- Medusa API/Admin: `http://localhost:9000`
+- Medusa API/Admin: `http://localhost:9000/app`
 
 ## Android app shell (Capacitor)
 
@@ -68,3 +68,62 @@ npm run dev:storefront
 
 - In Strapi admin, create an `Article` collection type and allow Public role `find` and `findOne`.
 - In Medusa, create a publishable API key and set it in `apps/storefront/.env.local` (`MEDUSA_PUBLISHABLE_KEY`).
+
+
+
+## 换电脑最稳流程如下。
+
+  1. 拷代码到新电脑
+
+  git clone <你的仓库地址>
+  cd 026.dev
+
+  2. 安装基础环境
+
+  - Node.js 20+
+  - npm 10+
+  - Docker Desktop
+  - Android Studio（如果要跑安卓壳）
+
+  3. 安装依赖
+
+  npm install
+  npm --prefix apps/storefront install
+
+  4. 配环境变量
+
+  copy apps\storefront\.env.local.example apps\storefront\.env.local
+
+  然后按你旧电脑的值补齐 apps/storefront/.env.local（尤其 Medusa key、API 地址）。
+
+  5. 一键启动后端和前台
+
+  npm run dev:all
+
+  若端口冲突：
+
+  npm run dev:all:clean
+
+  6. 安卓壳继续开发
+
+  npm run android:sync
+  npm run android:open
+
+  然后在 Android Studio 里运行模拟器/真机。
+
+  7. 提交你本地改动
+
+  git add .
+  git commit -m "chore: continue on new machine"
+  git push
+
+  关键点：
+
+  - apps/storefront/android/ 建议纳入 git（团队协作更省事）。
+  - 不要提交 .env.local。
+  - 新电脑第一次跑安卓时，先在 Android Studio 安装 SDK/Build-Tools。
+
+
+› Implement {feature}
+
+  ? for shortcuts                                                    
