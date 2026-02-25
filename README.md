@@ -18,6 +18,7 @@ Use one command to start infra + all services:
 
 ```bash
 npm run dev:all
+npm run dev:all:clean
 ```
 
 Or start them manually:
@@ -68,6 +69,18 @@ npm run dev:storefront
 
 - In Strapi admin, create an `Article` collection type and allow Public role `find` and `findOne`.
 - In Medusa, create a publishable API key and set it in `apps/storefront/.env.local` (`MEDUSA_PUBLISHABLE_KEY`).
+
+
+■前台Storefront:
+http://localhost:3000
+
+■后台Medusa： 
+http://localhost:9000/app
+guanrg@gmail.com / Admin#123456
+
+■内容管理：
+http://localhost:1337
+guanrg@gmail.com / Strapi#123456
 
 
 

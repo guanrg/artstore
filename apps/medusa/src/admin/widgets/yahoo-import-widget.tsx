@@ -9,6 +9,11 @@ type ImportResponse = {
     title: string;
     handle: string;
   };
+  parsed?: {
+    original_title?: string | null;
+    translated_title?: string | null;
+    translation_error?: string | null;
+  };
 };
 
 const cardStyle: CSSProperties = {
@@ -44,6 +49,8 @@ const YahooImportWidget = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [translateEnabled, setTranslateEnabled] = useState(true);
+  const [targetLang, setTargetLang] = useState("zh-CN");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,10 +62,14 @@ const YahooImportWidget = () => {
       const payload: Record<string, unknown> = {
         url: url.trim(),
         publish: true,
+        translate: translateEnabled,
       };
 
       if (priceAud.trim()) {
         payload.price_aud = Number(priceAud);
+      }
+      if (targetLang.trim()) {
+        payload.target_lang = targetLang.trim();
       }
 
       const response = await fetch("/admin/custom/yahoo-import", {
@@ -80,8 +91,18 @@ const YahooImportWidget = () => {
         throw new Error(data.message || `Import failed (${response.status})`);
       }
 
+      const originalTitle = data.parsed?.original_title;
+      const translatedTitle = data.parsed?.translated_title;
+      const shownTitle = translatedTitle || data.product?.title || "";
+      const suffix = originalTitle && translatedTitle
+        ? ` | Original: ${originalTitle}`
+        : "";
+      const warn = data.parsed?.translation_error
+        ? ` | Translation warning: ${data.parsed.translation_error}`
+        : "";
+
       setSuccess(
-        `${data.mode === "updated" ? "Updated" : "Imported"}: ${data.product?.title ?? ""} (${data.product?.id ?? "unknown"})`
+        `${data.mode === "updated" ? "Updated" : "Imported"}: ${shownTitle} (${data.product?.id ?? "unknown"})${suffix}${warn}`
       );
       setUrl("");
       setPriceAud("");
@@ -124,6 +145,26 @@ const YahooImportWidget = () => {
             placeholder="Leave empty to auto-estimate"
             value={priceAud}
             onChange={(e) => setPriceAud(e.target.value)}
+          />
+        </label>
+
+        <label style={{ fontSize: 13, marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={translateEnabled}
+            onChange={(e) => setTranslateEnabled(e.target.checked)}
+          />
+          Auto translate title/description
+        </label>
+
+        <label style={{ fontSize: 13, marginTop: 12, display: "block" }}>
+          Target language (BCP-47, e.g. zh-CN / en / fr)
+          <input
+            type="text"
+            style={inputStyle}
+            placeholder="zh-CN"
+            value={targetLang}
+            onChange={(e) => setTargetLang(e.target.value)}
           />
         </label>
 

@@ -6,6 +6,15 @@ import {
   createTaxRegionsWorkflow,
 } from "@medusajs/medusa/core-flows"
 
+type RegionCountry = {
+  iso_2?: string | null
+}
+
+type RegionLike = {
+  id: string
+  countries?: RegionCountry[] | null
+}
+
 export default async function enableAuCheckout({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
@@ -17,8 +26,8 @@ export default async function enableAuCheckout({ container }: ExecArgs) {
     fields: ["id", "name", "currency_code", "countries.iso_2"],
   })
 
-  let auRegion = existingRegions.find((region: any) =>
-    (region.countries ?? []).some((country: any) => country.iso_2?.toLowerCase() === "au"),
+  let auRegion = (existingRegions as RegionLike[]).find((region) =>
+    (region.countries ?? []).some((country) => country.iso_2?.toLowerCase() === "au"),
   )
 
   if (!auRegion) {
@@ -34,7 +43,11 @@ export default async function enableAuCheckout({ container }: ExecArgs) {
         ],
       },
     })
-    auRegion = result[0]
+    const createdRegion = result[0] as RegionLike | undefined
+    if (!createdRegion?.id) {
+      throw new Error("Failed to create AU region")
+    }
+    auRegion = createdRegion
     logger.info(`Created AU region: ${auRegion.id}`)
   } else {
     logger.info(`AU region already exists: ${auRegion.id}`)
@@ -74,6 +87,10 @@ export default async function enableAuCheckout({ container }: ExecArgs) {
       },
     ],
   })
+  const serviceZoneId = fulfillmentSet.service_zones?.[0]?.id
+  if (!serviceZoneId) {
+    throw new Error("No service zone found on created fulfillment set")
+  }
 
   await link.create({
     [Modules.STOCK_LOCATION]: {
@@ -90,7 +107,7 @@ export default async function enableAuCheckout({ container }: ExecArgs) {
         name: "Standard Shipping AU",
         price_type: "flat",
         provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0].id,
+        service_zone_id: serviceZoneId,
         shipping_profile_id: shippingProfile.id,
         type: {
           label: "Standard AU",

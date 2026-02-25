@@ -10,6 +10,8 @@ type YahooImportBody = {
   url?: string;
   price_aud?: number;
   publish?: boolean;
+  translate?: boolean;
+  target_lang?: string;
 };
 
 type ParsedYahooAuction = {
@@ -20,7 +22,93 @@ type ParsedYahooAuction = {
   priceJpy?: number;
 };
 
+type TranslationResult = {
+  title: string;
+  description: string;
+  provider: "openai";
+  sourceLang: string;
+  targetLang: string;
+};
+
 const YAHOO_HOST = "auctions.yahoo.co.jp";
+
+function normalizeLanguageTag(input?: string): string {
+  if (!input) {
+    return "zh-CN";
+  }
+  return input.trim() || "zh-CN";
+}
+
+async function translateWithOpenAI(params: {
+  title: string;
+  description: string;
+  sourceLang: string;
+  targetLang: string;
+}): Promise<TranslationResult | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  const model = process.env.OPENAI_TRANSLATE_MODEL || "gpt-4o-mini";
+  const instruction =
+    `Translate product content from ${params.sourceLang} to ${params.targetLang}. ` +
+    "Keep brand/model codes unchanged. Return strict JSON only: " +
+    '{"title":"...","description":"..."}';
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: instruction,
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            title: params.title,
+            description: params.description,
+          }),
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Translation failed (${response.status})`);
+  }
+
+  const json = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const content = json.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error("Translation failed: empty model response");
+  }
+
+  const parsed = JSON.parse(content) as { title?: string; description?: string };
+  const translatedTitle = normalizeText(parsed.title);
+  const translatedDescription = normalizeText(parsed.description);
+  if (!translatedTitle || !translatedDescription) {
+    throw new Error("Translation failed: invalid JSON payload");
+  }
+
+  return {
+    title: translatedTitle,
+    description: translatedDescription,
+    provider: "openai",
+    sourceLang: params.sourceLang,
+    targetLang: params.targetLang,
+  };
+}
 
 function decodeHtml(input: string): string {
   return input
@@ -269,6 +357,27 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const html = await upstream.text();
     const parsed = parseAuctionPage(parsedUrl, html);
+    const shouldTranslate = body.translate !== false;
+    const sourceLang = normalizeLanguageTag(process.env.YAHOO_TRANSLATE_SOURCE_LANG || "ja");
+    const targetLang = normalizeLanguageTag(
+      body.target_lang || process.env.YAHOO_TRANSLATE_TARGET_LANG || "zh-CN"
+    );
+
+    let translated: TranslationResult | null = null;
+    let translationError: string | null = null;
+    if (shouldTranslate) {
+      try {
+        translated = await translateWithOpenAI({
+          title: parsed.title,
+          description: parsed.description,
+          sourceLang,
+          targetLang,
+        });
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        translationError = err?.message || "Translation failed";
+      }
+    }
 
     const fulfillmentService = req.scope.resolve(Modules.FULFILLMENT);
     const salesChannelService = req.scope.resolve(Modules.SALES_CHANNEL);
@@ -325,11 +434,15 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const skuSuffix = Date.now().toString().slice(-6);
 
+    const translatedTitle = translated?.title;
+    const translatedDescription = translated?.description;
+
     const baseProductData = {
-      title: parsed.title,
+      title: translatedTitle || parsed.title,
+      subtitle: parsed.title,
       handle: stableHandle,
       external_id: stableExternalId,
-      description: parsed.description,
+      description: translatedDescription || parsed.description,
       status: body.publish === false ? ProductStatus.DRAFT : ProductStatus.PUBLISHED,
       shipping_profile_id: shippingProfileId,
       metadata: {
@@ -337,6 +450,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         source_url: parsedUrl.toString(),
         source_auction_id: parsed.auctionId,
         source_price_jpy: parsed.priceJpy ?? null,
+        source_title_original: parsed.title,
+        source_description_original: parsed.description,
+        translated_title: translatedTitle ?? null,
+        translated_description: translatedDescription ?? null,
+        translation_provider: translated?.provider ?? null,
+        translation_source_lang: translated?.sourceLang ?? null,
+        translation_target_lang: translated?.targetLang ?? null,
+        translation_error: translationError,
       },
     };
 
@@ -344,7 +465,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const salesChannels = salesChannelId ? [{ id: salesChannelId }] : undefined;
 
     let productId = "";
-    let productTitle = parsed.title;
+    let productTitle = translatedTitle || parsed.title;
     let productHandle = stableHandle;
     let mode: "created" | "updated" = "created";
 
@@ -433,10 +554,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       mode,
       parsed: {
         auction_id: parsed.auctionId,
-        title: parsed.title,
+        original_title: parsed.title,
+        translated_title: translatedTitle ?? null,
         price_jpy: parsed.priceJpy ?? null,
         image_count: parsed.imageUrls.length,
         image_urls: parsed.imageUrls,
+        translation_error: translationError,
       },
     });
   } catch (e: unknown) {
