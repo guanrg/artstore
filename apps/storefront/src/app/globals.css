@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090909;
-  --foreground: #f4f4f5;
-  --surface: #111113;
-  --border: #29292f;
-  --accent: #d2a86a;
-  --accent-strong: #e7c48f;
+  --background: #ffffff;
+  --foreground: #111827;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --accent: #9a6a2f;
+  --accent-strong: #7a4f1d;
 }
 
 @theme inline {
@@ -31,15 +31,15 @@ h4 {
 
 .art-shell {
   background:
-    radial-gradient(80rem 28rem at 85% -15%, #3a2c1a66 0%, transparent 58%),
-    radial-gradient(50rem 22rem at -10% 15%, #2c221733 0%, transparent 52%),
-    linear-gradient(180deg, #0b0b0d 0%, #0d0d10 45%, #0a0a0c 100%);
+    radial-gradient(80rem 28rem at 85% -15%, #f7ecd366 0%, transparent 58%),
+    radial-gradient(50rem 22rem at -10% 15%, #efe7d133 0%, transparent 52%),
+    linear-gradient(180deg, #ffffff 0%, #fbfbf9 45%, #f8f8f6 100%);
 }
 
 .glass-card {
-  background: color-mix(in srgb, var(--surface) 92%, black 8%);
-  border: 1px solid color-mix(in srgb, var(--border) 90%, black 10%);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+  background: color-mix(in srgb, var(--surface) 96%, #f7f7f7 4%);
+  border: 1px solid color-mix(in srgb, var(--border) 94%, #ececec 6%);
+  box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
   backdrop-filter: blur(4px);
 }
 

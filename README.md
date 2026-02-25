@@ -77,7 +77,7 @@ http://localhost:3000
 ■后台Medusa： 
 http://localhost:9000/app
 guanrg@gmail.com / Admin#123456
-
+admin@local.dev -p Admin123456
 ■内容管理：
 http://localhost:1337
 guanrg@gmail.com / Strapi#123456

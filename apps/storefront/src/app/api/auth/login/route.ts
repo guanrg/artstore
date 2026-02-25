@@ -16,6 +16,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: auth.message }, { status: auth.status })
   }
 
+  const session = await medusaRequest<{ user?: { actor_type?: string } }>("/auth/session", {
+    method: "POST",
+    token: auth.data.token,
+  })
+
+  if (!session.ok) {
+    return NextResponse.json({ message: session.message }, { status: session.status })
+  }
+
+  const actorType = session.data.user?.actor_type
+  if (actorType && actorType !== "customer") {
+    return NextResponse.json({ message: "Only customer accounts can log in here" }, { status: 403 })
+  }
+
   const me = await medusaRequest<{ customer: { id: string; email: string; first_name?: string; last_name?: string } }>(
     "/store/customers/me",
     { token: auth.data.token },

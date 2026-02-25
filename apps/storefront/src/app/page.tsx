@@ -167,22 +167,22 @@ export default async function Home() {
           <div className="relative grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
             <div>
               <p className="text-xs uppercase tracking-[0.33em] text-zinc-500">{t.home.heroTag}</p>
-              <h1 className="mt-3 text-5xl leading-[0.98] text-zinc-100 md:text-6xl">
+              <h1 className="mt-3 text-5xl leading-[0.98] text-zinc-900 md:text-6xl">
                 {t.home.heroTitle1}
                 <br />
                 {t.home.heroTitle2}
               </h1>
-              <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-300 md:text-base">{t.home.heroDesc}</p>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-700 md:text-base">{t.home.heroDesc}</p>
               <div className="mt-6 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full border border-[var(--border)] bg-zinc-900/70 px-3 py-1 text-zinc-200">{t.home.chip1}</span>
-                <span className="rounded-full border border-[var(--border)] bg-zinc-900/70 px-3 py-1 text-zinc-200">{t.home.chip2}</span>
-                <span className="rounded-full border border-[var(--border)] bg-zinc-900/70 px-3 py-1 text-zinc-200">{t.home.chip3}</span>
+                <span className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-zinc-700">{t.home.chip1}</span>
+                <span className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-zinc-700">{t.home.chip2}</span>
+                <span className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-zinc-700">{t.home.chip3}</span>
               </div>
             </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-zinc-900/70 p-5">
+            <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
               <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t.home.statusTitle}</p>
-              <p className="mt-3 text-3xl text-zinc-100">{medusa.data.length}</p>
-              <p className="mt-1 text-sm text-zinc-400">{t.home.statusDesc}</p>
+              <p className="mt-3 text-3xl text-zinc-900">{medusa.data.length}</p>
+              <p className="mt-1 text-sm text-zinc-600">{t.home.statusDesc}</p>
               <Link href="/account/register" className="accent-link mt-4 inline-block text-sm font-semibold">
                 {t.home.createAccount}
               </Link>
@@ -190,11 +190,11 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="reveal-up rounded-3xl border border-[var(--border)] bg-zinc-950/65 p-6 md:p-7">
+        <section className="reveal-up rounded-3xl border border-[var(--border)] bg-white p-6 md:p-7">
           <div className="mb-5 flex items-end justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">{t.home.catalogue}</p>
-              <h2 className="text-3xl text-zinc-100">{t.home.featured}</h2>
+              <h2 className="text-3xl text-zinc-900">{t.home.featured}</h2>
             </div>
             <p className="text-sm text-zinc-500">{medusa.data.length} {t.home.listed}</p>
           </div>
@@ -206,12 +206,12 @@ export default async function Home() {
               <Link
                 key={item.id}
                 href={`/products/${item.handle ?? item.id}`}
-                className={`group overflow-hidden rounded-2xl border border-[var(--border)] bg-zinc-900/70 transition hover:-translate-y-0.5 hover:shadow-xl ${
+                className={`group overflow-hidden rounded-2xl border border-[var(--border)] bg-white transition hover:-translate-y-0.5 hover:shadow-xl ${
                   index % 5 === 0 ? "md:col-span-2" : ""
                 }`}
               >
                 <article>
-                  <div className={`${index % 5 === 0 ? "h-72" : "h-56"} overflow-hidden bg-zinc-800`}>
+                  <div className={`${index % 5 === 0 ? "h-72" : "h-56"} overflow-hidden bg-zinc-100`}>
                     {item.thumbnail ? (
                       <Image
                         src={item.thumbnail}
@@ -225,10 +225,10 @@ export default async function Home() {
                     )}
                   </div>
                   <div className="p-4">
-                    <p className="line-clamp-1 text-lg text-zinc-100">{item.title}</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{item.subtitle || t.home.curatedPiece}</p>
+                    <p className="line-clamp-1 text-lg text-zinc-900">{item.title}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{item.subtitle || t.home.curatedPiece}</p>
                     <div className="mt-3 flex items-center justify-between">
-                      <p className="text-sm font-semibold text-zinc-100">{formatAud(getFromPrice(item), t.home.priceOnRequest)}</p>
+                      <p className="text-sm font-semibold text-zinc-900">{formatAud(getFromPrice(item), t.home.priceOnRequest)}</p>
                       <p className="accent-link text-xs font-semibold uppercase tracking-[0.18em]">{t.home.viewWork}</p>
                     </div>
                     <p className="mt-2 text-xs text-zinc-500">
@@ -243,13 +243,13 @@ export default async function Home() {
           {medusa.data.length === 0 ? <p className="mt-4 text-sm text-zinc-500">{t.home.noProducts}</p> : null}
         </section>
 
-        <section className="reveal-up grid gap-5 rounded-3xl border border-[var(--border)] bg-zinc-950/65 p-6 md:grid-cols-3">
+        <section className="reveal-up grid gap-5 rounded-3xl border border-[var(--border)] bg-white p-6 md:grid-cols-3">
           {strapi.error ? <p className="md:col-span-3 text-sm text-rose-700">{strapi.error}</p> : null}
           {editorial.map((item) => (
-            <article key={item.id} className="rounded-2xl border border-[var(--border)] bg-zinc-900/70 p-5">
+            <article key={item.id} className="rounded-2xl border border-[var(--border)] bg-white p-5">
               <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t.home.editorial}</p>
-              <h3 className="mt-2 text-2xl leading-tight text-zinc-100">{item.title || t.home.untitled}</h3>
-              <p className="mt-2 text-sm text-zinc-400">{item.excerpt || t.home.noExcerpt}</p>
+              <h3 className="mt-2 text-2xl leading-tight text-zinc-900">{item.title || t.home.untitled}</h3>
+              <p className="mt-2 text-sm text-zinc-600">{item.excerpt || t.home.noExcerpt}</p>
             </article>
           ))}
         </section>
