@@ -23,7 +23,7 @@ npm run dev:all:clean
 
 Or start them manually:
 
-1. Start infrastructure:
+1. Start infrastructure: "docker compose up -d postgres redis
 
 ```bash
 npm run infra:up
