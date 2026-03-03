@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据库表定义总览</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --card: #ffffff;
+        --line: #d8deea;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --accent: #1d4ed8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: linear-gradient(180deg, #eef3ff, var(--bg));
+        color: var(--text);
+      }
+
+      .wrap {
+        width: min(1400px, 96vw);
+        margin: 20px auto;
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 20px;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 10px 0;
+      }
+
+      input,
+      button,
+      select,
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+
+      input,
+      select {
+        min-width: 220px;
+      }
+
+      button {
+        background: #fff;
+        cursor: pointer;
+      }
+
+      button.primary {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 110px;
+        resize: vertical;
+        font-family: Consolas, "Courier New", monospace;
+      }
+
+      .grid {
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+      }
+
+      table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        min-width: 1100px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid #edf1f8;
+        border-right: 1px solid #edf1f8;
+        padding: 8px 10px;
+        font-size: 13px;
+        white-space: nowrap;
+        vertical-align: top;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8faff;
+        text-align: left;
+      }
+
+      tr.data-row.odd td {
+        background: #ffffff;
+      }
+
+      tr.data-row.even td {
+        background: #e7f0ff;
+      }
+
+      tr.group-row td {
+        background: #cfe0ff;
+        border-bottom: 1px solid #9db8f5;
+        font-weight: 600;
+      }
+
+      .stat {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+
+      .table-nav {
+        margin-top: 10px;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .table-nav button {
+        border: 1px solid #93c5fd;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1e3a8a;
+        padding: 4px 10px;
+        font-size: 12px;
+      }
+
+      code {
+        background: #f3f6fb;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="panel">
+        <h1>数据库表定义总览（Excel风格）</h1>
+        <div class="muted">
+          先在 PostgreSQL 里执行下方 SQL，把结果导出为 TSV/CSV 或直接粘贴；页面会按表分组展示字段定义和注释。
+        </div>
+        <textarea id="sql" readonly>
+SELECT
+  c.table_schema,
+  c.table_name,
+  COALESCE(obj_description((quote_ident(c.table_schema)||'.'||quote_ident(c.table_name))::regclass), '') AS table_comment,
+  c.ordinal_position,
+  c.column_name,
+  c.data_type,
+  c.udt_name,
+  c.is_nullable,
+  COALESCE(c.column_default, '') AS column_default,
+  COALESCE(col_description((quote_ident(c.table_schema)||'.'||quote_ident(c.table_name))::regclass, c.ordinal_position), '') AS column_comment
+FROM information_schema.columns c
+WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
+ORDER BY c.table_schema, c.table_name, c.ordinal_position;
+        </textarea>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <input id="searchTable" placeholder="筛选表名（如 user）" />
+          <input id="searchCol" placeholder="筛选字段名/注释（如 email）" />
+          <select id="schemaSelect">
+            <option value="">全部 Schema</option>
+          </select>
+          <button id="renderBtn" class="primary">渲染数据</button>
+          <button id="demoBtn">加载示例</button>
+        </div>
+        <textarea id="raw" placeholder="把 TSV/CSV 数据粘贴到这里（首行需要列名）"></textarea>
+        <div class="stat" id="stat">未加载数据</div>
+        <div class="table-nav" id="tableNav"></div>
+      </div>
+
+      <div class="grid">
+        <table id="table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Column</th>
+              <th>Data Type</th>
+              <th>UDT</th>
+              <th>Nullable</th>
+              <th>Default</th>
+              <th>Column Comment</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const rawEl = document.getElementById("raw");
+      const tbody = document.querySelector("#table tbody");
+      const statEl = document.getElementById("stat");
+      const tableFilterEl = document.getElementById("searchTable");
+      const colFilterEl = document.getElementById("searchCol");
+      const schemaSelectEl = document.getElementById("schemaSelect");
+      const tableNavEl = document.getElementById("tableNav");
+
+      const requiredCols = [
+        "table_schema",
+        "table_name",
+        "table_comment",
+        "ordinal_position",
+        "column_name",
+        "data_type",
+        "udt_name",
+        "is_nullable",
+        "column_default",
+        "column_comment",
+      ];
+
+      function splitLine(line, sep) {
+        if (sep === "\t") return line.split("\t");
+        const out = [];
+        let cur = "";
+        let quote = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (quote && line[i + 1] === '"') {
+              cur += '"';
+              i++;
+            } else {
+              quote = !quote;
+            }
+          } else if (ch === "," && !quote) {
+            out.push(cur);
+            cur = "";
+          } else {
+            cur += ch;
+          }
+        }
+        out.push(cur);
+        return out;
+      }
+
+      function parseInput(text) {
+        const trimmed = text.trim();
+        if (!trimmed) return [];
+        const lines = trimmed.split(/\r?\n/).filter(Boolean);
+        const sep = lines[0].includes("\t") ? "\t" : ",";
+        const headers = splitLine(lines[0], sep).map((h) => h.trim());
+
+        const idx = {};
+        requiredCols.forEach((k) => {
+          idx[k] = headers.indexOf(k);
+        });
+
+        if (requiredCols.some((k) => idx[k] < 0)) {
+          throw new Error("列名不匹配，请使用页面上 SQL 的导出结果。");
+        }
+
+        return lines.slice(1).map((line) => {
+          const arr = splitLine(line, sep);
+          const obj = {};
+          requiredCols.forEach((k) => (obj[k] = (arr[idx[k]] || "").trim()));
+          return obj;
+        });
+      }
+
+      function fillSchemaSelect(rows) {
+        const schemas = [...new Set(rows.map((r) => r.table_schema))].sort();
+        const current = schemaSelectEl.value;
+        schemaSelectEl.innerHTML = '<option value="">全部 Schema</option>';
+        schemas.forEach((s) => {
+          const op = document.createElement("option");
+          op.value = s;
+          op.textContent = s;
+          schemaSelectEl.appendChild(op);
+        });
+        schemaSelectEl.value = schemas.includes(current) ? current : "";
+      }
+
+      function render(rows) {
+        const fTable = tableFilterEl.value.trim().toLowerCase();
+        const fCol = colFilterEl.value.trim().toLowerCase();
+        const fSchema = schemaSelectEl.value;
+
+        const filtered = rows.filter((r) => {
+          if (fSchema && r.table_schema !== fSchema) return false;
+          const tableHit = !fTable || r.table_name.toLowerCase().includes(fTable);
+          const colHit =
+            !fCol ||
+            r.column_name.toLowerCase().includes(fCol) ||
+            r.column_comment.toLowerCase().includes(fCol);
+          return tableHit && colHit;
+        });
+
+        tbody.innerHTML = "";
+        tableNavEl.innerHTML = "";
+        let lastGroup = "";
+        const seenGroups = new Set();
+        let dataRowIndex = 0;
+        filtered.forEach((r) => {
+          const groupKey = `${r.table_schema}.${r.table_name}`;
+          if (groupKey !== lastGroup) {
+            if (!seenGroups.has(groupKey)) {
+              seenGroups.add(groupKey);
+              const btn = document.createElement("button");
+              btn.type = "button";
+              btn.textContent = r.table_name;
+              btn.addEventListener("click", () => {
+                const node = document.getElementById(`group-${groupKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`);
+                node?.scrollIntoView({ behavior: "smooth", block: "start" });
+              });
+              tableNavEl.appendChild(btn);
+            }
+            const g = document.createElement("tr");
+            g.className = "group-row";
+            g.innerHTML = `<td id="group-${groupKey.replace(/[^a-zA-Z0-9_-]/g, "-")}" colspan="7">${groupKey} ${r.table_comment ? `| ${r.table_comment}` : ""}</td>`;
+            tbody.appendChild(g);
+            lastGroup = groupKey;
+          }
+
+          const tr = document.createElement("tr");
+          tr.className = `data-row ${dataRowIndex % 2 === 0 ? "odd" : "even"}`;
+          dataRowIndex += 1;
+          tr.innerHTML = `
+            <td>${r.ordinal_position}</td>
+            <td>${r.column_name}</td>
+            <td>${r.data_type}</td>
+            <td>${r.udt_name}</td>
+            <td>${r.is_nullable}</td>
+            <td>${r.column_default || ""}</td>
+            <td>${r.column_comment || ""}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        const tableCount = new Set(filtered.map((r) => `${r.table_schema}.${r.table_name}`)).size;
+        statEl.textContent = `共 ${tableCount} 张表，${filtered.length} 个字段`;
+      }
+
+      let allRows = [];
+
+      function rerender() {
+        render(allRows);
+      }
+
+      document.getElementById("renderBtn").addEventListener("click", () => {
+        try {
+          allRows = parseInput(rawEl.value);
+          fillSchemaSelect(allRows);
+          rerender();
+        } catch (e) {
+          statEl.textContent = e.message;
+        }
+      });
+
+      document.getElementById("demoBtn").addEventListener("click", () => {
+        rawEl.value = `table_schema\ttable_name\ttable_comment\tordinal_position\tcolumn_name\tdata_type\tudt_name\tis_nullable\tcolumn_default\tcolumn_comment
+public\tuser\t后台用户\t1\tid\ttext\ttext\tNO\t\t主键
+public\tuser\t后台用户\t2\temail\ttext\ttext\tNO\t\t邮箱
+public\tuser\t后台用户\t3\tdeleted_at\ttimestamp with time zone\ttimestamptz\tYES\t\t软删除时间
+public\tcustomer\t商城客户\t1\tid\ttext\ttext\tNO\t\t主键
+public\tcustomer\t商城客户\t2\temail\ttext\ttext\tYES\t\t邮箱`;
+        allRows = parseInput(rawEl.value);
+        fillSchemaSelect(allRows);
+        rerender();
+      });
+
+      [tableFilterEl, colFilterEl, schemaSelectEl].forEach((el) =>
+        el.addEventListener("input", rerender)
+      );
+    </script>
+  </body>
+</html>

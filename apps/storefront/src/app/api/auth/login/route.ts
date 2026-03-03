@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server"
 import { CUSTOMER_TOKEN_COOKIE, medusaRequest } from "@/lib/medusa-server"
+import { getRateLimitKey, isRateLimited } from "@/lib/rate-limit"
 
 export async function POST(req: Request) {
+  const rateKey = getRateLimitKey(req, "auth-login")
+  if (
+    isRateLimited(rateKey, {
+      maxRequests: 12,
+      windowMs: 60_000,
+    })
+  ) {
+    return NextResponse.json({ message: "Too many attempts. Please try again shortly." }, { status: 429 })
+  }
+
   const body = (await req.json()) as { email?: string; password?: string }
   if (!body.email || !body.password) {
     return NextResponse.json({ message: "Email and password are required" }, { status: 400 })
@@ -13,7 +24,7 @@ export async function POST(req: Request) {
   })
 
   if (!auth.ok) {
-    return NextResponse.json({ message: auth.message }, { status: auth.status })
+    return NextResponse.json({ message: "Invalid email or password." }, { status: 401 })
   }
 
   const session = await medusaRequest<{ user?: { actor_type?: string } }>("/auth/session", {
@@ -22,12 +33,12 @@ export async function POST(req: Request) {
   })
 
   if (!session.ok) {
-    return NextResponse.json({ message: session.message }, { status: session.status })
+    return NextResponse.json({ message: "Invalid email or password." }, { status: 401 })
   }
 
   const actorType = session.data.user?.actor_type
   if (actorType && actorType !== "customer") {
-    return NextResponse.json({ message: "Only customer accounts can log in here" }, { status: 403 })
+    return NextResponse.json({ message: "Invalid email or password." }, { status: 401 })
   }
 
   const me = await medusaRequest<{ customer: { id: string; email: string; first_name?: string; last_name?: string } }>(
@@ -36,7 +47,7 @@ export async function POST(req: Request) {
   )
 
   if (!me.ok) {
-    return NextResponse.json({ message: me.message }, { status: me.status })
+    return NextResponse.json({ message: "Invalid email or password." }, { status: 401 })
   }
 
   const res = NextResponse.json({ customer: me.data.customer })

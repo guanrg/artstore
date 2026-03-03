@@ -48,6 +48,9 @@ export default function CheckoutPage() {
   const [paymentProviderId, setPaymentProviderId] = useState("")
   const [attemptedSubmit, setAttemptedSubmit] = useState(false)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [inventoryIssues, setInventoryIssues] = useState<
+    Array<{ title?: string; requested?: number; available?: number }>
+  >([])
   const [shipping, setShipping] = useState({
     first_name: "",
     last_name: "",
@@ -142,6 +145,7 @@ export default function CheckoutPage() {
 
     setPlacing(true)
     setError("")
+    setInventoryIssues([])
 
     const res = await fetch("/api/checkout/complete", {
       method: "POST",
@@ -154,10 +158,15 @@ export default function CheckoutPage() {
         billing_same_as_shipping: true,
       }),
     })
-    const json = (await res.json()) as { message?: string; order?: { id?: string; display_id?: number } }
+    const json = (await res.json()) as {
+      message?: string
+      order?: { id?: string; display_id?: number }
+      issues?: Array<{ title?: string; requested?: number; available?: number }>
+    }
 
     if (!res.ok) {
       setError(json.message ?? "Place order failed")
+      setInventoryIssues(json.issues ?? [])
       setPlacing(false)
       return
     }
@@ -387,6 +396,15 @@ export default function CheckoutPage() {
             </Link>
           </div>
           {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
+          {inventoryIssues.length > 0 ? (
+            <ul className="mt-2 space-y-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {inventoryIssues.map((item, idx) => (
+                <li key={`${item.title}-${idx}`}>
+                  {(item.title ?? "Item") + `: requested ${item.requested ?? 0}, available ${item.available ?? 0}`}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
 
         <aside className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

@@ -4,16 +4,22 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { onCartUpdated } from "@/lib/cart-events"
-import { getClientDict } from "@/lib/i18n-client"
-import { dict, normalizeLocale } from "@/lib/i18n-dict"
+import { dict, normalizeLocale, type Locale } from "@/lib/i18n-dict"
 
 type Customer = { email?: string; first_name?: string; last_name?: string } | null
 
-export function SiteHeader() {
+type SiteHeaderProps = {
+  initialLocale: Locale
+}
+
+export function SiteHeader({ initialLocale }: SiteHeaderProps) {
   const pathname = usePathname()
   const [customer, setCustomer] = useState<Customer>(null)
   const [cartCount, setCartCount] = useState(0)
-  const [{ locale, t }, setI18n] = useState(getClientDict)
+  const [{ locale, t }, setI18n] = useState(() => ({
+    locale: initialLocale,
+    t: dict[initialLocale],
+  }))
 
   useEffect(() => {
     const load = async () => {
@@ -55,8 +61,8 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/92 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="group">
-          <p className="text-xs uppercase tracking-[0.28em] text-zinc-500">{t.header.tagline}</p>
-          <p className="text-2xl leading-none text-zinc-100 transition group-hover:text-[var(--accent-strong)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-300">{t.header.tagline}</p>
+          <p className="text-2xl font-semibold leading-none text-white transition group-hover:text-[var(--accent-strong)]">
             {t.header.brand}
           </p>
         </Link>
@@ -74,6 +80,9 @@ export function SiteHeader() {
           </label>
           <Link href="/cart" className="font-medium text-zinc-300 transition hover:text-[var(--accent-strong)]">
             {t.header.cart} ({cartCount})
+          </Link>
+          <Link href="/categories" className="font-medium text-zinc-300 transition hover:text-[var(--accent-strong)]">
+            Categories
           </Link>
           {customer ? (
             <>

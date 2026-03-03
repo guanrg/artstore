@@ -59,6 +59,23 @@ npm run dev:storefront
 - Strapi: `http://localhost:1337`
 - Medusa API/Admin: `http://localhost:9000/app`
 
+## Email setup (Medusa)
+
+- Configure in `apps/medusa/.env`:
+  - `SMTP_HOST` (Gmail: `smtp.gmail.com`)
+  - `SMTP_PORT` (Gmail SSL: `465`)
+  - `SMTP_SECURE` (`true` for 465)
+  - `SMTP_USER` (your Gmail)
+  - `SMTP_PASS` (Gmail App Password)
+  - `SMTP_FROM` (optional, defaults to `SMTP_USER`)
+  - `ADMIN_ORDER_NOTIFICATION_EMAIL`
+- If SMTP is not configured, Medusa falls back to local notification logger (no real email sending).
+- Test email command:
+
+```bash
+npm run email:test
+```
+
 ## Android app shell (Capacitor)
 
 - Sync Android project files: `npm run android:sync`
@@ -75,9 +92,12 @@ npm run dev:storefront
 http://localhost:3000
 
 ■后台Medusa： 
+cd .\apps\medusa
+npx medusa user -e admin2@local.dev -p Admin123456
+
 http://localhost:9000/app
-guanrg@gmail.com / Admin#123456
-admin@local.dev -p Admin123456
+admin2@local.dev -p Admin123456
+
 ■内容管理：
 http://localhost:1337
 guanrg@gmail.com / Strapi#123456

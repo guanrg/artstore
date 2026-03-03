@@ -36,7 +36,7 @@ function upsertActionButtons() {
     return
   }
 
-  menuTrigger.style.display = "none"
+  // Keep the native action menu visible to avoid blocking default edit behavior.
 
   let host = actionGroup.querySelector<HTMLDivElement>('[data-ux-action-host="true"]')
   if (!host) {
@@ -88,6 +88,10 @@ function upsertActionButtons() {
 function patchDialogs() {
   const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]'))
   dialogs.forEach((dialog) => {
+    if (dialog.dataset.uxPatched === "true") {
+      return
+    }
+
     const className = dialog.className || ""
     const isRouteDrawer = className.includes("sm:max-w-[560px]") || className.includes("slide-in-from-right-1/2")
     const hasDescription = Boolean(dialog.querySelector("textarea"))
@@ -113,6 +117,8 @@ function patchDialogs() {
       textarea.rows = Math.max(textarea.rows || 0, 50)
       textarea.style.minHeight = "720px"
     }
+
+    dialog.dataset.uxPatched = "true"
   })
 }
 
@@ -125,7 +131,7 @@ const ProductActionsUxWidget = () => {
 
     run()
     const observer = new MutationObserver(() => run())
-    observer.observe(document.body, { subtree: true, childList: true, attributes: true })
+    observer.observe(document.body, { subtree: true, childList: true })
 
     return () => observer.disconnect()
   }, [])

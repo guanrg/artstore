@@ -31,6 +31,7 @@ type TranslationResult = {
 };
 
 const YAHOO_HOST = "auctions.yahoo.co.jp";
+const MAX_DESCRIPTION_LENGTH = 4000;
 
 function normalizeLanguageTag(input?: string): string {
   if (!input) {
@@ -96,7 +97,7 @@ async function translateWithOpenAI(params: {
 
   const parsed = JSON.parse(content) as { title?: string; description?: string };
   const translatedTitle = normalizeText(parsed.title);
-  const translatedDescription = normalizeText(parsed.description);
+  const translatedDescription = clampDescription(normalizeText(parsed.description));
   if (!translatedTitle || !translatedDescription) {
     throw new Error("Translation failed: invalid JSON payload");
   }
@@ -129,6 +130,25 @@ function normalizeText(input?: string): string {
   }
 
   return decodeHtml(stripTags(input)).replace(/\s+/g, " ").trim();
+}
+
+function clampDescription(input: string): string {
+  if (!input) {
+    return input;
+  }
+
+  return input.length > MAX_DESCRIPTION_LENGTH
+    ? input.slice(0, MAX_DESCRIPTION_LENGTH)
+    : input;
+}
+
+function decodeEscapedJsonString(raw: string): string {
+  const normalized = raw.replace(/\\\//g, "/");
+  try {
+    return JSON.parse(`"${normalized}"`) as string;
+  } catch {
+    return normalized;
+  }
 }
 
 function pickMetaContent(html: string, key: string): string | undefined {
@@ -176,6 +196,53 @@ function firstNumberMatch(content: string, patterns: RegExp[]): number | undefin
   }
 
   return undefined;
+}
+
+function extractLongDescriptionFromHtml(html: string): string | undefined {
+  const candidates: string[] = [];
+
+  // Try to capture known JSON string keys that often contain full auction description.
+  const jsonPatterns = [
+    /"auctionDescription"\s*:\s*"((?:\\.|[^"\\])+)"/gi,
+    /"description"\s*:\s*"((?:\\.|[^"\\]){120,})"/gi,
+    /"itemDescription"\s*:\s*"((?:\\.|[^"\\])+)"/gi,
+  ];
+
+  for (const pattern of jsonPatterns) {
+    let match: RegExpExecArray | null = pattern.exec(html);
+    while (match) {
+      const decoded = decodeEscapedJsonString(match[1] || "");
+      const text = normalizeText(decoded);
+      if (text.length >= 80) {
+        candidates.push(text);
+      }
+      match = pattern.exec(html);
+    }
+  }
+
+  // Fallback: capture possible description area in HTML if present.
+  const htmlBlockPatterns = [
+    /<section[^>]+id=["'](?:product|auction)[-_]?(?:description|detail)[^"']*["'][^>]*>([\s\S]{120,}?)<\/section>/gi,
+    /<div[^>]+id=["'][^"']*(?:description|detail)[^"']*["'][^>]*>([\s\S]{120,}?)<\/div>/gi,
+  ];
+
+  for (const pattern of htmlBlockPatterns) {
+    let match: RegExpExecArray | null = pattern.exec(html);
+    while (match) {
+      const text = normalizeText(match[1] || "");
+      if (text.length >= 80) {
+        candidates.push(text);
+      }
+      match = pattern.exec(html);
+    }
+  }
+
+  if (!candidates.length) {
+    return undefined;
+  }
+
+  candidates.sort((a, b) => b.length - a.length);
+  return candidates[0];
 }
 
 function extractYahooImages(html: string, ogImage?: string): string[] {
@@ -275,12 +342,13 @@ function parseAuctionPage(url: URL, html: string): ParsedYahooAuction {
   const ogTitle = pickMetaContent(html, "og:title");
   const ogDescription = pickMetaContent(html, "og:description");
   const ogImage = pickMetaContent(html, "og:image");
+  const longDescription = extractLongDescriptionFromHtml(html);
   const imageUrls = extractYahooImages(html, ogImage);
   const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1];
 
   const title = normalizeText(ogTitle || titleTag || `Yahoo Auction ${auctionId}`);
-  const description = normalizeText(
-    ogDescription || `Imported from Yahoo Auctions: ${url.toString()}`
+  const description = clampDescription(
+    normalizeText(longDescription || ogDescription || `Imported from Yahoo Auctions: ${url.toString()}`)
   );
 
   const priceJpy = firstNumberMatch(html, [

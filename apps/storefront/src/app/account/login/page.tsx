@@ -2,7 +2,9 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+
+const LAST_LOGIN_EMAIL_KEY = "artstore_last_login_email"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -10,6 +12,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [pending, setPending] = useState(false)
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(LAST_LOGIN_EMAIL_KEY)
+      if (!saved) {
+        return
+      }
+      // Defer state update to avoid hydration mismatch with server-rendered markup.
+      setTimeout(() => setEmail(saved), 0)
+    } catch {
+      // Ignore storage errors in restricted browser mode.
+    }
+  }, [])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,6 +40,11 @@ export default function LoginPage() {
       setError(json.message ?? "Login failed")
       setPending(false)
       return
+    }
+    try {
+      window.localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email.trim())
+    } catch {
+      // Ignore storage errors in restricted browser mode.
     }
     router.push("/account")
     router.refresh()
@@ -63,6 +83,11 @@ export default function LoginPage() {
             {pending ? "Logging in..." : "Login"}
           </button>
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+          <p className="text-sm text-slate-600">
+            <Link href="/account/forgot-password" className="font-medium text-orange-700">
+              Forgot password?
+            </Link>
+          </p>
         </form>
         <p className="mt-4 text-sm text-slate-600">
           No account?{" "}

@@ -10,13 +10,20 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [pending, setPending] = useState(false)
   const [error, setError] = useState("")
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setPending(true)
     setError("")
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+
+    setPending(true)
 
     const res = await fetch("/api/auth/register", {
       method: "POST",
@@ -26,6 +33,7 @@ export default function RegisterPage() {
         last_name: lastName,
         email,
         password,
+        confirm_password: confirmPassword,
       }),
     })
     const json = (await res.json()) as { message?: string }
@@ -75,6 +83,16 @@ export default function RegisterPage() {
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              className="w-full rounded-md border border-slate-300 px-3 py-2"
+              required
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium">Confirm password</span>
+            <input
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               type="password"
               className="w-full rounded-md border border-slate-300 px-3 py-2"
               required

@@ -28,46 +28,135 @@ type StrapiArticle = {
   excerpt?: string
 }
 
-async function getMedusaProducts(): Promise<{ data: MedusaProduct[]; error?: string }> {
+type SortKey = "latest" | "price_asc" | "price_desc" | "title_asc"
+
+type ProductQuery = {
+  q: string
+  sort: SortKey
+  page: number
+  pageSize: number
+}
+
+type ProductResult = {
+  data: MedusaProduct[]
+  total: number
+  page: number
+  totalPages: number
+  error?: string
+}
+
+function parseSearchParams(
+  searchParams: Record<string, string | string[] | undefined> | undefined
+): ProductQuery {
+  const rawQ = searchParams?.q
+  const rawSort = searchParams?.sort
+  const rawPage = searchParams?.page
+
+  const q = (Array.isArray(rawQ) ? rawQ[0] : rawQ || "").trim()
+  const sortCandidate = (Array.isArray(rawSort) ? rawSort[0] : rawSort || "latest") as SortKey
+  const sort: SortKey = ["latest", "price_asc", "price_desc", "title_asc"].includes(sortCandidate)
+    ? sortCandidate
+    : "latest"
+
+  const parsedPage = Number(Array.isArray(rawPage) ? rawPage[0] : rawPage)
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? Math.floor(parsedPage) : 1
+
+  return { q, sort, page, pageSize: 12 }
+}
+
+function sortProducts(products: MedusaProduct[], sort: SortKey): MedusaProduct[] {
+  const list = [...products]
+  const price = (p: MedusaProduct) => getFromPrice(p) ?? Number.MAX_SAFE_INTEGER
+
+  if (sort === "price_asc") {
+    list.sort((a, b) => price(a) - price(b))
+  } else if (sort === "price_desc") {
+    list.sort((a, b) => price(b) - price(a))
+  } else if (sort === "title_asc") {
+    list.sort((a, b) => (a.title || "").localeCompare(b.title || ""))
+  } else {
+    list.sort((a, b) => (b.id || "").localeCompare(a.id || ""))
+  }
+
+  return list
+}
+
+function filterProducts(products: MedusaProduct[], q: string): MedusaProduct[] {
+  if (!q) {
+    return products
+  }
+  const keyword = q.toLowerCase()
+  return products.filter((item) => {
+    const title = item.title?.toLowerCase() || ""
+    const subtitle = item.subtitle?.toLowerCase() || ""
+    return title.includes(keyword) || subtitle.includes(keyword)
+  })
+}
+
+async function getMedusaProducts(queryInput: ProductQuery): Promise<ProductResult> {
   const baseUrl = process.env.MEDUSA_BACKEND_URL ?? "http://localhost:9000"
   const publishableKey = process.env.MEDUSA_PUBLISHABLE_KEY
 
   try {
+    const headers = publishableKey ? { "x-publishable-api-key": publishableKey } : {}
     const regionRes = await fetch(`${baseUrl}/store/regions`, {
-      headers: publishableKey ? { "x-publishable-api-key": publishableKey } : {},
+      headers,
       next: { revalidate: 30 },
     })
-    if (!regionRes.ok) {
-      return { data: [], error: `Medusa regions API ${regionRes.status}` }
-    }
-    const regionJson = (await regionRes.json()) as {
-      regions?: Array<{ id: string; currency_code?: string }>
-    }
-    const auRegionId =
-      regionJson.regions?.find((r) => r.currency_code?.toLowerCase() === "aud")?.id ??
-      regionJson.regions?.[0]?.id
-    if (!auRegionId) {
-      return { data: [], error: "No region configured in Medusa" }
+    let regionId: string | undefined
+    if (regionRes.ok) {
+      const regionJson = (await regionRes.json()) as {
+        regions?: Array<{ id: string; currency_code?: string }>
+      }
+      regionId =
+        regionJson.regions?.find((r) => r.currency_code?.toLowerCase() === "aud")?.id ??
+        regionJson.regions?.[0]?.id
     }
 
-    const query = new URLSearchParams({
-      limit: "12",
-      region_id: auRegionId,
+    const withRegion = new URLSearchParams({
+      limit: "200",
       fields: "*variants.calculated_price,+variants.calculated_price",
     })
-    const res = await fetch(`${baseUrl}/store/products?${query.toString()}`, {
-      headers: publishableKey ? { "x-publishable-api-key": publishableKey } : {},
-      next: { revalidate: 30 },
-    })
-
-    if (!res.ok) {
-      return { data: [], error: `Medusa API ${res.status}` }
+    if (regionId) {
+      withRegion.set("region_id", regionId)
     }
 
-    const json = (await res.json()) as { products?: MedusaProduct[] }
-    return { data: json.products ?? [] }
+    const fallback = new URLSearchParams({
+      limit: "200",
+      fields: "*variants.calculated_price,+variants.calculated_price",
+    })
+
+    for (const query of [withRegion, fallback]) {
+      const res = await fetch(`${baseUrl}/store/products?${query.toString()}`, {
+        headers,
+        next: { revalidate: 30 },
+      })
+      if (!res.ok) {
+        continue
+      }
+
+      const json = (await res.json()) as { products?: MedusaProduct[] }
+      const products = json.products ?? []
+      if (products.length > 0 || query === fallback) {
+        const filtered = filterProducts(products, queryInput.q)
+        const sorted = sortProducts(filtered, queryInput.sort)
+        const total = sorted.length
+        const totalPages = Math.max(1, Math.ceil(total / queryInput.pageSize))
+        const safePage = Math.min(queryInput.page, totalPages)
+        const start = (safePage - 1) * queryInput.pageSize
+        const data = sorted.slice(start, start + queryInput.pageSize)
+        return {
+          data,
+          total,
+          page: safePage,
+          totalPages,
+        }
+      }
+    }
+
+    return { data: [], total: 0, page: 1, totalPages: 1, error: "No products returned from Medusa store API" }
   } catch {
-    return { data: [], error: "Medusa service unavailable" }
+    return { data: [], total: 0, page: 1, totalPages: 1, error: "Medusa service unavailable" }
   }
 }
 
@@ -124,9 +213,35 @@ function formatAud(amount: number | null, priceOnRequest: string) {
   }).format(amount)
 }
 
-export default async function Home() {
+function getProductSlug(product: MedusaProduct) {
+  const handle = product.handle?.trim()
+  if (handle) {
+    return handle
+  }
+  return product.id
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined
+  const query = parseSearchParams(resolvedSearchParams)
   const { locale, t } = await getServerDict()
-  const [medusa, strapi] = await Promise.all([getMedusaProducts(), getStrapiArticles()])
+  const [medusa, strapi] = await Promise.all([getMedusaProducts(query), getStrapiArticles()])
+
+  const makeHref = (next: Partial<{ q: string; sort: SortKey; page: number }>) => {
+    const params = new URLSearchParams()
+    const q = next.q ?? query.q
+    const sort = next.sort ?? query.sort
+    const page = next.page ?? query.page
+    if (q) params.set("q", q)
+    if (sort !== "latest") params.set("sort", sort)
+    if (page > 1) params.set("page", String(page))
+    const qs = params.toString()
+    return qs ? `/?${qs}` : "/"
+  }
 
   const editorial =
     strapi.data.length > 0
@@ -166,7 +281,7 @@ export default async function Home() {
           <div className="pointer-events-none absolute -left-28 bottom-0 h-48 w-48 rounded-full bg-[radial-gradient(circle,#cdb08a55_0%,transparent_70%)]" />
           <div className="relative grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
             <div>
-              <p className="text-xs uppercase tracking-[0.33em] text-zinc-500">{t.home.heroTag}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.33em] text-zinc-700">{t.home.heroTag}</p>
               <h1 className="mt-3 text-5xl leading-[0.98] text-zinc-900 md:text-6xl">
                 {t.home.heroTitle1}
                 <br />
@@ -196,16 +311,41 @@ export default async function Home() {
               <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">{t.home.catalogue}</p>
               <h2 className="text-3xl text-zinc-900">{t.home.featured}</h2>
             </div>
-            <p className="text-sm text-zinc-500">{medusa.data.length} {t.home.listed}</p>
+            <p className="text-sm text-zinc-500">{medusa.total} {t.home.listed}</p>
           </div>
 
           {medusa.error ? <p className="mb-4 text-sm text-rose-700">{medusa.error}</p> : null}
+
+          <form action="/" method="get" className="mb-4 grid gap-2 rounded-xl border border-[var(--border)] bg-zinc-50 p-3 md:grid-cols-[1fr_220px_auto]">
+            <input
+              name="q"
+              defaultValue={query.q}
+              placeholder={locale === "zh" ? "搜索商品标题..." : "Search products..."}
+              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+            />
+            <select
+              name="sort"
+              defaultValue={query.sort}
+              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+            >
+              <option value="latest">{locale === "zh" ? "最新" : "Latest"}</option>
+              <option value="price_asc">{locale === "zh" ? "价格从低到高" : "Price: Low to High"}</option>
+              <option value="price_desc">{locale === "zh" ? "价格从高到低" : "Price: High to Low"}</option>
+              <option value="title_asc">{locale === "zh" ? "标题 A-Z" : "Title A-Z"}</option>
+            </select>
+            <button
+              type="submit"
+              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
+            >
+              {locale === "zh" ? "筛选" : "Apply"}
+            </button>
+          </form>
 
           <div className="grid gap-4 md:grid-cols-3">
             {medusa.data.map((item, index) => (
               <Link
                 key={item.id}
-                href={`/products/${item.handle ?? item.id}`}
+                href={`/products/${getProductSlug(item)}`}
                 className={`group overflow-hidden rounded-2xl border border-[var(--border)] bg-white transition hover:-translate-y-0.5 hover:shadow-xl ${
                   index % 5 === 0 ? "md:col-span-2" : ""
                 }`}
@@ -241,6 +381,28 @@ export default async function Home() {
           </div>
 
           {medusa.data.length === 0 ? <p className="mt-4 text-sm text-zinc-500">{t.home.noProducts}</p> : null}
+
+          {medusa.totalPages > 1 ? (
+            <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4 text-sm">
+              <span className="text-zinc-500">
+                {locale === "zh" ? `第 ${medusa.page} / ${medusa.totalPages} 页` : `Page ${medusa.page} / ${medusa.totalPages}`}
+              </span>
+              <div className="flex gap-2">
+                <Link
+                  href={makeHref({ page: Math.max(1, medusa.page - 1) })}
+                  className={`rounded border px-3 py-1 ${medusa.page <= 1 ? "pointer-events-none opacity-40" : "hover:bg-zinc-50"}`}
+                >
+                  {locale === "zh" ? "上一页" : "Prev"}
+                </Link>
+                <Link
+                  href={makeHref({ page: Math.min(medusa.totalPages, medusa.page + 1) })}
+                  className={`rounded border px-3 py-1 ${medusa.page >= medusa.totalPages ? "pointer-events-none opacity-40" : "hover:bg-zinc-50"}`}
+                >
+                  {locale === "zh" ? "下一页" : "Next"}
+                </Link>
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="reveal-up grid gap-5 rounded-3xl border border-[var(--border)] bg-white p-6 md:grid-cols-3">

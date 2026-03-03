@@ -7,6 +7,7 @@ type Customer = {
   email?: string
   first_name?: string
   last_name?: string
+  phone?: string
 }
 
 type Order = {
@@ -29,6 +30,20 @@ export default function AccountPage() {
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [profilePending, setProfilePending] = useState(false)
+  const [profileMessage, setProfileMessage] = useState("")
+  const [passwordPending, setPasswordPending] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState("")
+  const [profile, setProfile] = useState({
+    first_name: "",
+    last_name: "",
+    phone: "",
+  })
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_password: "",
+  })
 
   useEffect(() => {
     const load = async () => {
@@ -36,6 +51,11 @@ export default function AccountPage() {
       if (meRes.ok) {
         const me = (await meRes.json()) as { customer: Customer | null }
         setCustomer(me.customer)
+        setProfile({
+          first_name: me.customer?.first_name ?? "",
+          last_name: me.customer?.last_name ?? "",
+          phone: me.customer?.phone ?? "",
+        })
       }
       if (orderRes.ok) {
         const data = (await orderRes.json()) as { orders?: Order[] }
@@ -64,6 +84,70 @@ export default function AccountPage() {
     )
   }
 
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setProfilePending(true)
+    setProfileMessage("")
+
+    const res = await fetch("/api/account/profile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(profile),
+    })
+    const json = (await res.json()) as { message?: string; customer?: Customer }
+
+    if (!res.ok) {
+      setProfileMessage(json.message ?? "Failed to update profile")
+      setProfilePending(false)
+      return
+    }
+
+    setCustomer((prev) => ({
+      ...(prev ?? {}),
+      first_name: json.customer?.first_name ?? profile.first_name,
+      last_name: json.customer?.last_name ?? profile.last_name,
+      phone: json.customer?.phone ?? profile.phone,
+      email: prev?.email,
+    }))
+    setProfileMessage("Profile updated")
+    setProfilePending(false)
+  }
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordMessage("")
+
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      setPasswordMessage("New passwords do not match")
+      return
+    }
+
+    setPasswordPending(true)
+    const res = await fetch("/api/account/password", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        current_password: passwordForm.current_password,
+        new_password: passwordForm.new_password,
+      }),
+    })
+    const json = (await res.json()) as { message?: string }
+
+    if (!res.ok) {
+      setPasswordMessage(json.message ?? "Failed to change password")
+      setPasswordPending(false)
+      return
+    }
+
+    setPasswordForm({
+      current_password: "",
+      new_password: "",
+      confirm_password: "",
+    })
+    setPasswordMessage("Password updated")
+    setPasswordPending(false)
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8">
       <div className="mx-auto max-w-3xl space-y-6">
@@ -72,6 +156,92 @@ export default function AccountPage() {
           <p className="mt-2 text-slate-600">
             {customer.first_name} {customer.last_name} ({customer.email})
           </p>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold">Profile</h2>
+          <form onSubmit={saveProfile} className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="text-sm">
+              <span className="mb-1 block font-medium">First name</span>
+              <input
+                value={profile.first_name}
+                onChange={(e) => setProfile((p) => ({ ...p, first_name: e.target.value }))}
+                className="w-full rounded-md border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block font-medium">Last name</span>
+              <input
+                value={profile.last_name}
+                onChange={(e) => setProfile((p) => ({ ...p, last_name: e.target.value }))}
+                className="w-full rounded-md border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <label className="text-sm sm:col-span-2">
+              <span className="mb-1 block font-medium">Phone</span>
+              <input
+                value={profile.phone}
+                onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
+                className="w-full rounded-md border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                disabled={profilePending}
+                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-black disabled:opacity-60"
+              >
+                {profilePending ? "Saving..." : "Save profile"}
+              </button>
+              {profileMessage ? <p className="mt-2 text-sm text-slate-600">{profileMessage}</p> : null}
+            </div>
+          </form>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold">Password</h2>
+          <form onSubmit={changePassword} className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="text-sm sm:col-span-2">
+              <span className="mb-1 block font-medium">Current password</span>
+              <input
+                type="password"
+                value={passwordForm.current_password}
+                onChange={(e) => setPasswordForm((p) => ({ ...p, current_password: e.target.value }))}
+                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                required
+              />
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block font-medium">New password</span>
+              <input
+                type="password"
+                value={passwordForm.new_password}
+                onChange={(e) => setPasswordForm((p) => ({ ...p, new_password: e.target.value }))}
+                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                required
+              />
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block font-medium">Confirm new password</span>
+              <input
+                type="password"
+                value={passwordForm.confirm_password}
+                onChange={(e) => setPasswordForm((p) => ({ ...p, confirm_password: e.target.value }))}
+                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                required
+              />
+            </label>
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                disabled={passwordPending}
+                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-black disabled:opacity-60"
+              >
+                {passwordPending ? "Updating..." : "Change password"}
+              </button>
+              {passwordMessage ? <p className="mt-2 text-sm text-slate-600">{passwordMessage}</p> : null}
+            </div>
+          </form>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

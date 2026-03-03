@@ -35,7 +35,102 @@ type CartResponse = {
     region?: { countries?: Array<{ iso_2: string }> }
     shipping_methods?: Array<{ shipping_option_id?: string }>
     payment_collection?: { id: string }
+    items?: Array<{
+      id: string
+      title?: string
+      variant_title?: string
+      variant_id?: string
+      quantity: number
+    }>
   }
+}
+
+type VariantResponse = {
+  variant: {
+    id: string
+    title?: string
+    manage_inventory?: boolean
+    allow_backorder?: boolean
+    inventory_quantity?: number
+  }
+}
+
+function mapCompletionErrorMessage(message: string) {
+  const lower = message.toLowerCase()
+  if (lower.includes("payment")) {
+    return "Payment authorization failed. Please try again or choose another payment method."
+  }
+  if (lower.includes("inventory") || lower.includes("stock")) {
+    return "Some items are out of stock. Please review your cart and try again."
+  }
+  return "Order could not be completed. Please retry in a moment."
+}
+
+async function validateInventoryBeforeComplete(items: CartResponse["cart"]["items"] = []) {
+  const variantIds = Array.from(new Set(items.map((item) => item.variant_id).filter(Boolean))) as string[]
+
+  if (variantIds.length === 0) {
+    return { ok: true as const }
+  }
+
+  const variants = await Promise.all(
+    variantIds.map(async (id) => {
+      const res = await medusaRequest<VariantResponse>(
+        `/store/variants/${id}?fields=id,title,manage_inventory,allow_backorder,inventory_quantity`,
+      )
+      return { id, res }
+    }),
+  )
+
+  const failedVariantRequest = variants.find((result) => !result.res.ok)
+  if (failedVariantRequest) {
+    return {
+      ok: false as const,
+      status: 503,
+      message: "Unable to verify inventory right now. Please retry.",
+      issues: [],
+    }
+  }
+
+  const variantMap = new Map(variants.map((result) => [result.id, result.res.data.variant]))
+  const issues: Array<{ line_id: string; variant_id: string; title: string; requested: number; available: number }> = []
+
+  for (const item of items) {
+    const variantId = item.variant_id
+    if (!variantId) {
+      continue
+    }
+
+    const variant = variantMap.get(variantId)
+    if (!variant) {
+      continue
+    }
+
+    const manageInventory = variant.manage_inventory !== false
+    const allowBackorder = variant.allow_backorder === true
+    const available = typeof variant.inventory_quantity === "number" ? variant.inventory_quantity : null
+
+    if (manageInventory && !allowBackorder && available !== null && item.quantity > available) {
+      issues.push({
+        line_id: item.id,
+        variant_id: variantId,
+        title: item.title || variant.title || "Item",
+        requested: item.quantity,
+        available,
+      })
+    }
+  }
+
+  if (issues.length > 0) {
+    return {
+      ok: false as const,
+      status: 409,
+      message: "Some items are out of stock. Please reduce quantity and try again.",
+      issues,
+    }
+  }
+
+  return { ok: true as const }
 }
 
 export async function POST(req: Request) {
@@ -160,6 +255,14 @@ export async function POST(req: Request) {
     cartRes = setShipping
   }
 
+  const inventoryCheck = await validateInventoryBeforeComplete(cartRes.data.cart.items)
+  if (!inventoryCheck.ok) {
+    return NextResponse.json(
+      { message: inventoryCheck.message, issues: inventoryCheck.issues ?? [] },
+      { status: inventoryCheck.status },
+    )
+  }
+
   let paymentCollectionId = cartRes.data.cart.payment_collection?.id
   if (!paymentCollectionId) {
     const collection = await medusaRequest<{ payment_collection: { id: string } }>(
@@ -201,18 +304,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: setPaymentSession.message }, { status: setPaymentSession.status })
   }
 
-  const completed = await medusaRequest<{ type: "order" | "cart"; order?: Record<string, unknown>; error?: { message?: string } }>(
-    `/store/carts/${cartId}/complete`,
-    { method: "POST" },
-  )
+  const completed = await medusaRequest<{
+    type: "order" | "cart"
+    order?: Record<string, unknown>
+    error?: { message?: string }
+  }>(`/store/carts/${cartId}/complete`, { method: "POST" })
 
   if (!completed.ok) {
-    return NextResponse.json({ message: completed.message }, { status: completed.status })
+    return NextResponse.json(
+      { message: mapCompletionErrorMessage(completed.message), raw_message: completed.message },
+      { status: completed.status },
+    )
   }
 
   if (completed.data.type !== "order") {
+    const raw = completed.data.error?.message ?? "Cart could not be completed yet"
     return NextResponse.json(
-      { message: completed.data.error?.message ?? "Cart could not be completed yet" },
+      { message: mapCompletionErrorMessage(raw), raw_message: raw },
       { status: 400 },
     )
   }

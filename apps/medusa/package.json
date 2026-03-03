@@ -15,6 +15,8 @@
   "scripts": {
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
+    "setup:au-only": "medusa exec ./src/scripts/enforce-au-store.ts",
+    "email:test": "medusa exec ./src/scripts/send-test-email.ts",
     "fix:sales-channels": "medusa exec ./src/scripts/fix-sales-channel-stock-links.ts",
     "fix:yahoo-inventory": "medusa exec ./src/scripts/fix-yahoo-inventory.ts",
     "start": "medusa start",
@@ -27,7 +29,8 @@
     "@medusajs/admin-sdk": "2.13.1",
     "@medusajs/cli": "2.13.1",
     "@medusajs/framework": "2.13.1",
-    "@medusajs/medusa": "2.13.1"
+    "@medusajs/medusa": "2.13.1",
+    "nodemailer": "^6.10.1"
   },
   "devDependencies": {
     "@medusajs/test-utils": "2.13.1",

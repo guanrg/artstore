@@ -20,7 +20,7 @@
     "strictNullChecks": true
   },
   "ts-node": {
-    "swc": true
+    "swc": false
   },
   "include": [
     "**/*",

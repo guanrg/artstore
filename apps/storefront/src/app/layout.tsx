@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
+import { getServerLocale } from "@/lib/i18n-server";
 
 const headingFont = Cormorant_Garamond({
   variable: "--font-heading",
@@ -19,17 +20,19 @@ export const metadata: Metadata = {
   description: "Curated antique art and collectible objects",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getServerLocale()
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body
         className={`${headingFont.variable} ${bodyFont.variable} antialiased`}
       >
-        <SiteHeader />
+        <SiteHeader initialLocale={locale} />
         {children}
       </body>
     </html>

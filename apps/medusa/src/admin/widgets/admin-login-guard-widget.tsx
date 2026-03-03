@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react"
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 
 const REASON_KEY = "reason"
-const REASON_NON_ADMIN = "admin-only"
+const REASON_AUTH_FAILED = "auth-failed"
+const ENABLE_ADMIN_LOGIN_GUARD = true
+const ADMIN_LOGIN_EMAIL_KEY = "medusa_admin_login_email"
 
 function isAdminLoginCall(input: RequestInfo | URL, init?: RequestInit): boolean {
   const method = (init?.method || "GET").toUpperCase()
@@ -22,14 +24,22 @@ function isAdminLoginCall(input: RequestInfo | URL, init?: RequestInit): boolean
 function appendReasonToLoginUrl() {
   const url = new URL(window.location.href)
   url.pathname = "/app/login"
-  url.searchParams.set(REASON_KEY, REASON_NON_ADMIN)
+  url.searchParams.set(REASON_KEY, REASON_AUTH_FAILED)
   return url.toString()
 }
 
 async function enforceAdminUser(fetchImpl: typeof window.fetch) {
-  const me = await fetchImpl("/admin/users/me", { credentials: "include" })
-  if (me.ok) {
-    return
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  // The auth/session cookie may not be fully available right after login.
+  // Retry briefly before deciding the account is non-admin.
+  for (let i = 0; i < 6; i++) {
+    const me = await fetchImpl("/admin/users/me", { credentials: "include" })
+    if (me.ok) {
+      return
+    }
+
+    await wait(250)
   }
 
   await fetchImpl("/auth/session", {
@@ -41,6 +51,10 @@ async function enforceAdminUser(fetchImpl: typeof window.fetch) {
 
 function useInstallLoginGuard() {
   useEffect(() => {
+    if (!ENABLE_ADMIN_LOGIN_GUARD) {
+      return
+    }
+
     const marker = "__medusa_admin_login_guard_installed__"
     const globalScope = window as unknown as Record<string, unknown>
     if (globalScope[marker]) {
@@ -53,13 +67,113 @@ function useInstallLoginGuard() {
       const response = await originalFetch(input, init)
 
       if (isAdminLoginCall(input, init) && response.ok) {
-        queueMicrotask(() => {
+        setTimeout(() => {
           void enforceAdminUser(originalFetch)
-        })
+        }, 150)
       }
 
       return response
     }
+  }, [])
+}
+
+function useInstallAdminTitle() {
+  useEffect(() => {
+    const marker = "__medusa_admin_title_installed__"
+    const globalScope = window as unknown as Record<string, unknown>
+    if (globalScope[marker]) {
+      return
+    }
+    globalScope[marker] = true
+
+    const title = "Art Store Admin"
+    const applyTitle = () => {
+      if (document.title !== title) {
+        document.title = title
+      }
+    }
+
+    applyTitle()
+
+    const wrapHistoryMethod = (method: "pushState" | "replaceState") => {
+      const original = window.history[method].bind(window.history)
+      window.history[method] = ((...args: Parameters<History["pushState"]>) => {
+        const result = original(...args)
+        queueMicrotask(applyTitle)
+        return result
+      }) as History["pushState"]
+    }
+
+    wrapHistoryMethod("pushState")
+    wrapHistoryMethod("replaceState")
+
+    window.addEventListener("popstate", applyTitle)
+    window.addEventListener("hashchange", applyTitle)
+
+    const observer = new MutationObserver(() => applyTitle())
+    observer.observe(document.querySelector("title") ?? document.head, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    })
+  }, [])
+}
+
+function useRememberLoginEmail() {
+  useEffect(() => {
+    const marker = "__medusa_admin_login_email_remember_installed__"
+    const globalScope = window as unknown as Record<string, unknown>
+    if (globalScope[marker]) {
+      return
+    }
+    globalScope[marker] = true
+
+    const onLoginPage = () => /^\/app\/login\/?$/.test(window.location.pathname)
+    const saveEmail = (value?: string) => {
+      const email = (value || "").trim()
+      if (!email) {
+        return
+      }
+      localStorage.setItem(ADMIN_LOGIN_EMAIL_KEY, email)
+    }
+
+    const bind = () => {
+      if (!onLoginPage()) {
+        return
+      }
+
+      const input = document.querySelector<HTMLInputElement>(
+        'input[type="email"], input[name="email"], input[autocomplete="email"]'
+      )
+      if (!input) {
+        return
+      }
+
+      const saved = localStorage.getItem(ADMIN_LOGIN_EMAIL_KEY)
+      if (saved && !input.value) {
+        input.value = saved
+        input.dispatchEvent(new Event("input", { bubbles: true }))
+      }
+
+      if (!input.dataset.rememberEmailBound) {
+        const handler = () => saveEmail(input.value)
+        input.addEventListener("input", handler)
+        input.addEventListener("blur", handler)
+        input.dataset.rememberEmailBound = "true"
+      }
+
+      const form = input.form ?? document.querySelector<HTMLFormElement>("form")
+      if (form && !form.dataset.rememberEmailBound) {
+        form.addEventListener("submit", () => saveEmail(input.value))
+        form.dataset.rememberEmailBound = "true"
+      }
+    }
+
+    bind()
+    const observer = new MutationObserver(() => bind())
+    observer.observe(document.body, { subtree: true, childList: true })
+    window.addEventListener("popstate", bind)
+    window.addEventListener("hashchange", bind)
   }, [])
 }
 
@@ -89,6 +203,8 @@ function useApplyAdminTheme() {
 
 const AdminLoginGuardWidget = () => {
   useInstallLoginGuard()
+  useInstallAdminTitle()
+  useRememberLoginEmail()
   useApplyAdminTheme()
 
   const isLogin = useMemo(() => /^\/app\/login\/?$/.test(window.location.pathname), [])
@@ -100,7 +216,7 @@ const AdminLoginGuardWidget = () => {
     }
 
     const params = new URLSearchParams(window.location.search)
-    if (params.get(REASON_KEY) !== REASON_NON_ADMIN) {
+    if (params.get(REASON_KEY) !== REASON_AUTH_FAILED) {
       return
     }
 
@@ -126,7 +242,7 @@ const AdminLoginGuardWidget = () => {
         fontSize: 13,
       }}
     >
-      This account is not an admin user. Please use a backend user account to sign in.
+      Invalid email or password.
     </div>
   )
 }

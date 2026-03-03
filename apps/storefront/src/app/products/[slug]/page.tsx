@@ -38,48 +38,59 @@ async function fetchProductBySlug(slug: string): Promise<MedusaProduct | null> {
   const headers = publishableKey ? { "x-publishable-api-key": publishableKey } : {}
 
   try {
+    const fields = "*images,*variants.calculated_price,+variants.calculated_price"
     const regionsRes = await fetch(`${baseUrl}/store/regions`, {
       headers,
       next: { revalidate: 30 },
     })
-    if (!regionsRes.ok) {
-      return null
-    }
-    const regionsJson = (await regionsRes.json()) as { regions?: Array<{ id: string; currency_code?: string }> }
-    const regionId =
-      regionsJson.regions?.find((region) => region.currency_code?.toLowerCase() === "aud")?.id ??
-      regionsJson.regions?.[0]?.id
-    if (!regionId) {
-      return null
+
+    let regionId: string | undefined
+    if (regionsRes.ok) {
+      const regionsJson = (await regionsRes.json()) as { regions?: Array<{ id: string; currency_code?: string }> }
+      regionId =
+        regionsJson.regions?.find((region) => region.currency_code?.toLowerCase() === "aud")?.id ??
+        regionsJson.regions?.[0]?.id
     }
 
-    const fields = encodeURIComponent("*images,*variants.calculated_price,+variants.calculated_price")
-    const byIdRes = await fetch(`${baseUrl}/store/products/${slug}?region_id=${regionId}&fields=${fields}`, {
-      headers,
-      next: { revalidate: 30 },
-    })
-
-    if (byIdRes.ok) {
-      const byIdJson = (await byIdRes.json()) as { product?: MedusaProduct }
-      if (byIdJson.product) {
-        return byIdJson.product
+    for (const useRegion of [true, false]) {
+      const queryById = new URLSearchParams({ fields })
+      if (useRegion && regionId) {
+        queryById.set("region_id", regionId)
       }
-    }
-
-    const byHandleRes = await fetch(
-      `${baseUrl}/store/products?handle=${encodeURIComponent(slug)}&limit=1&region_id=${regionId}&fields=${fields}`,
-      {
+      const byIdRes = await fetch(`${baseUrl}/store/products/${slug}?${queryById.toString()}`, {
         headers,
         next: { revalidate: 30 },
+      })
+      if (byIdRes.ok) {
+        const byIdJson = (await byIdRes.json()) as { product?: MedusaProduct }
+        if (byIdJson.product) {
+          return byIdJson.product
+        }
       }
-    )
 
-    if (!byHandleRes.ok) {
-      return null
+      const queryByHandle = new URLSearchParams({
+        handle: slug,
+        limit: "1",
+        fields,
+      })
+      if (useRegion && regionId) {
+        queryByHandle.set("region_id", regionId)
+      }
+
+      const byHandleRes = await fetch(`${baseUrl}/store/products?${queryByHandle.toString()}`, {
+        headers,
+        next: { revalidate: 30 },
+      })
+      if (!byHandleRes.ok) {
+        continue
+      }
+      const byHandleJson = (await byHandleRes.json()) as { products?: MedusaProduct[] }
+      const product = byHandleJson.products?.[0]
+      if (product) {
+        return product
+      }
     }
-
-    const byHandleJson = (await byHandleRes.json()) as { products?: MedusaProduct[] }
-    return byHandleJson.products?.[0] ?? null
+    return null
   } catch {
     return null
   }
@@ -91,6 +102,10 @@ function getFromPrice(product: MedusaProduct) {
     .filter((value): value is number => typeof value === "number")
   if (amounts.length === 0) return null
   return Math.min(...amounts)
+}
+
+function getSiteUrl() {
+  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 }
 
 export default async function ProductDetailPage({
@@ -106,8 +121,42 @@ export default async function ProductDetailPage({
     notFound()
   }
 
+  const productUrl = `${getSiteUrl()}/products/${encodeURIComponent(product.handle?.trim() || product.id)}`
+  const fromPrice = getFromPrice(product)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    description: product.description || product.subtitle || "",
+    sku: product.variants?.[0]?.sku || undefined,
+    image: Array.from(
+      new Set(
+        [
+          ...(product.images ?? []).map((img) => img.url).filter(Boolean),
+          product.thumbnail ?? "",
+        ].filter(Boolean),
+      ),
+    ),
+    url: productUrl,
+    offers:
+      typeof fromPrice === "number"
+        ? {
+            "@type": "Offer",
+            priceCurrency: "AUD",
+            price: fromPrice,
+            availability: "https://schema.org/InStock",
+            url: productUrl,
+          }
+        : undefined,
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-zinc-950 via-black to-zinc-950 p-8 text-zinc-100">
+      <script
+        type="application/ld+json"
+        // JSON-LD for product rich snippets.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="mx-auto max-w-3xl space-y-6">
         <Link href="/" className="inline-flex text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">
           {t.product.back}
