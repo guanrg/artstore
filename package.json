@@ -12,6 +12,8 @@
     "dev:strapi": "npm --prefix apps/strapi run develop",
     "dev:storefront": "npm --prefix apps/storefront run dev",
     "setup:au-only": "npm --prefix apps/medusa run setup:au-only",
+    "setup:au-checkout": "npm --prefix apps/medusa run setup:au-checkout",
+    "setup:au-all": "npm --prefix apps/medusa run setup:au-all",
     "email:test": "npm --prefix apps/medusa run email:test",
     "android:sync": "npm --prefix apps/storefront run cap:sync",
     "android:open": "npm --prefix apps/storefront run cap:open:android",

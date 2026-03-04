@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import { getServerLocale } from "@/lib/i18n-server";
 
 const headingFont = Cormorant_Garamond({
@@ -34,6 +35,7 @@ export default async function RootLayout({
       >
         <SiteHeader initialLocale={locale} />
         {children}
+        <SiteFooter />
       </body>
     </html>
   );

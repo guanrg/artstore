@@ -107,28 +107,28 @@ export default function AddressesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8">
+    <main className="min-h-screen bg-gradient-to-b from-zinc-900 to-zinc-800 p-8">
       <div className="mx-auto max-w-4xl space-y-6">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
           <Link href="/account" className="text-sm font-medium text-orange-700">
             Back to account
           </Link>
           <h1 className="mt-2 text-2xl font-bold">Address Book</h1>
           {error ? <p className="mt-2 text-sm text-rose-600">{error}</p> : null}
-          {message ? <p className="mt-2 text-sm text-emerald-700">{message}</p> : null}
+          {message ? <p className="mt-2 text-sm text-emerald-300">{message}</p> : null}
 
           <div className="mt-4 space-y-2">
             {addresses.map((addr) => (
-              <article key={addr.id} className="rounded-lg border border-slate-200 p-3 text-sm">
+              <article key={addr.id} className="rounded-lg border border-zinc-700 p-3 text-sm">
                 <p className="font-medium">
                   {addr.first_name} {addr.last_name}
                 </p>
-                <p className="text-slate-600">
+                <p className="text-zinc-400">
                   {[addr.address_1, addr.address_2, addr.city, addr.province, addr.postal_code]
                     .filter(Boolean)
                     .join(", ")}
                 </p>
-                <p className="text-slate-600">{addr.country_code?.toUpperCase()}</p>
+                <p className="text-zinc-400">{addr.country_code?.toUpperCase()}</p>
                 <button
                   type="button"
                   onClick={() => removeAddress(addr.id)}
@@ -138,22 +138,22 @@ export default function AddressesPage() {
                 </button>
               </article>
             ))}
-            {addresses.length === 0 ? <p className="text-sm text-slate-500">No addresses yet.</p> : null}
+            {addresses.length === 0 ? <p className="text-sm text-zinc-400">No addresses yet.</p> : null}
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
           <h2 className="text-lg font-semibold">Add address</h2>
           <form onSubmit={createAddress} className="mt-4 grid gap-3 sm:grid-cols-2">
-            <input className="rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="First name" value={form.first_name} onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))} />
-            <input className="rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Last name" value={form.last_name} onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))} />
-            <input className="sm:col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Address 1" value={form.address_1} onChange={(e) => setForm((p) => ({ ...p, address_1: e.target.value }))} />
-            <input className="sm:col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Address 2" value={form.address_2} onChange={(e) => setForm((p) => ({ ...p, address_2: e.target.value }))} />
-            <input className="rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="City" value={form.city} onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))} />
-            <input className="rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Province/State" value={form.province} onChange={(e) => setForm((p) => ({ ...p, province: e.target.value }))} />
-            <input className="rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Postal code" value={form.postal_code} onChange={(e) => setForm((p) => ({ ...p, postal_code: e.target.value }))} />
-            <input className="rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Country code (us)" value={form.country_code} onChange={(e) => setForm((p) => ({ ...p, country_code: e.target.value.toLowerCase() }))} />
-            <input className="sm:col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Phone" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} />
+            <input className="rounded-md border border-zinc-600 px-3 py-2 text-sm" placeholder="First name" value={form.first_name} onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))} />
+            <input className="rounded-md border border-zinc-600 px-3 py-2 text-sm" placeholder="Last name" value={form.last_name} onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))} />
+            <input className="sm:col-span-2 rounded-md border border-zinc-600 px-3 py-2 text-sm" placeholder="Address 1" value={form.address_1} onChange={(e) => setForm((p) => ({ ...p, address_1: e.target.value }))} />
+            <input className="sm:col-span-2 rounded-md border border-zinc-600 px-3 py-2 text-sm" placeholder="Address 2" value={form.address_2} onChange={(e) => setForm((p) => ({ ...p, address_2: e.target.value }))} />
+            <input className="rounded-md border border-zinc-600 px-3 py-2 text-sm" placeholder="City" value={form.city} onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))} />
+            <input className="rounded-md border border-zinc-600 px-3 py-2 text-sm" placeholder="Province/State" value={form.province} onChange={(e) => setForm((p) => ({ ...p, province: e.target.value }))} />
+            <input className="rounded-md border border-zinc-600 px-3 py-2 text-sm" placeholder="Postal code" value={form.postal_code} onChange={(e) => setForm((p) => ({ ...p, postal_code: e.target.value }))} />
+            <input className="rounded-md border border-zinc-600 px-3 py-2 text-sm" placeholder="Country code (us)" value={form.country_code} onChange={(e) => setForm((p) => ({ ...p, country_code: e.target.value.toLowerCase() }))} />
+            <input className="sm:col-span-2 rounded-md border border-zinc-600 px-3 py-2 text-sm" placeholder="Phone" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} />
             <button type="submit" className="sm:col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
               Add address
             </button>

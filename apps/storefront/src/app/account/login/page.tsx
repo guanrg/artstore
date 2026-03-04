@@ -51,9 +51,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8">
-      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-slate-900">Login</h1>
+    <main className="min-h-screen bg-gradient-to-b from-zinc-900 to-zinc-800 p-8">
+      <div className="mx-auto max-w-md rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-zinc-100">Login</h1>
         <form onSubmit={onSubmit} className="mt-4 space-y-4">
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Email</span>
@@ -61,7 +61,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
-              className="w-full rounded-md border border-slate-300 px-3 py-2"
+              className="w-full rounded-md border border-zinc-600 px-3 py-2"
               required
             />
           </label>
@@ -71,7 +71,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
-              className="w-full rounded-md border border-slate-300 px-3 py-2"
+              className="w-full rounded-md border border-zinc-600 px-3 py-2"
               required
             />
           </label>
@@ -83,13 +83,13 @@ export default function LoginPage() {
             {pending ? "Logging in..." : "Login"}
           </button>
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-zinc-400">
             <Link href="/account/forgot-password" className="font-medium text-orange-700">
               Forgot password?
             </Link>
           </p>
         </form>
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-sm text-zinc-400">
           No account?{" "}
           <Link href="/account/register" className="font-medium text-orange-700">
             Register

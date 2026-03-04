@@ -16,6 +16,8 @@
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
     "setup:au-only": "medusa exec ./src/scripts/enforce-au-store.ts",
+    "setup:au-checkout": "medusa exec ./src/scripts/enable-au-checkout.ts",
+    "setup:au-all": "npm run setup:au-only && npm run setup:au-checkout",
     "email:test": "medusa exec ./src/scripts/send-test-email.ts",
     "fix:sales-channels": "medusa exec ./src/scripts/fix-sales-channel-stock-links.ts",
     "fix:yahoo-inventory": "medusa exec ./src/scripts/fix-yahoo-inventory.ts",

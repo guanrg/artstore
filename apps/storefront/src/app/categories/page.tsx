@@ -32,13 +32,13 @@ export default async function CategoriesPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-zinc-950 via-black to-zinc-950 p-8 text-zinc-100">
-      <div className="mx-auto max-w-5xl rounded-2xl border border-[var(--border)] bg-zinc-900/70 p-6 shadow-sm">
+      <div className="mx-auto max-w-5xl rounded-lg border border-[var(--border)] bg-zinc-900/70 p-6 shadow-sm">
         <h1 className="text-3xl font-bold">Categories</h1>
         <p className="mt-2 text-sm text-zinc-400">Browse products by category.</p>
         {error ? <p className="mt-3 text-sm text-rose-500">{error}</p> : null}
 
         {data.length === 0 ? (
-          <p className="mt-6 text-sm text-zinc-500">No categories found.</p>
+          <p className="mt-6 text-sm text-zinc-400">No categories found.</p>
         ) : (
           <div className="mt-6 grid gap-3 md:grid-cols-2">
             {data.map((category) => (

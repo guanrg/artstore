@@ -84,7 +84,7 @@ export function AddToCart({
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-slate-200 p-4">
+    <div className="mt-6 rounded-xl border border-zinc-700 p-4">
       <p className="text-sm font-semibold">{t.title}</p>
       <div className="mt-3 space-y-3">
         {options.map((opt) => (
@@ -93,7 +93,7 @@ export function AddToCart({
             <select
               value={selected[opt.id] ?? ""}
               onChange={(e) => setSelected((prev) => ({ ...prev, [opt.id]: e.target.value }))}
-              className="w-full rounded-md border border-slate-300 px-3 py-2"
+              className="w-full rounded-md border border-zinc-600 px-3 py-2"
             >
               {(opt.values ?? []).map((value) => (
                 <option key={value.id} value={value.value}>
@@ -111,11 +111,11 @@ export function AddToCart({
             min={1}
             value={quantity}
             onChange={(e) => setQuantity(Math.max(1, Number(e.target.value || 1)))}
-            className="w-28 rounded-md border border-slate-300 px-3 py-2"
+            className="w-28 rounded-md border border-zinc-600 px-3 py-2"
           />
         </label>
 
-        <p className="text-sm font-semibold text-slate-900">
+        <p className="text-sm font-semibold text-zinc-100">
           {typeof currentPrice === "number" ? `${t.selectedPrice}: $ ${currentPrice}` : t.selectedPriceUnavailable}
         </p>
 
@@ -130,7 +130,7 @@ export function AddToCart({
         <a href="/cart" className="ml-3 text-sm font-medium text-orange-700 hover:text-orange-900">
           {t.goToCart}
         </a>
-        {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+        {message ? <p className="text-sm text-zinc-400">{message}</p> : null}
       </div>
     </div>
   )

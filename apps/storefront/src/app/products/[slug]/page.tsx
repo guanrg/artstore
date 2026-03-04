@@ -162,7 +162,7 @@ export default async function ProductDetailPage({
           {t.product.back}
         </Link>
 
-        <section className="rounded-2xl border border-[var(--border)] bg-zinc-900/70 p-8 shadow-sm">
+        <section className="rounded-lg border border-[var(--border)] bg-zinc-900/70 p-8 shadow-sm">
           <p className="text-xs uppercase tracking-widest text-[var(--accent)]">{t.product.detail}</p>
           <h1 className="mt-2 text-3xl font-bold">{product.title}</h1>
           <p className="mt-2 text-zinc-400">{product.subtitle ?? t.product.noSubtitle}</p>
@@ -206,7 +206,7 @@ export default async function ProductDetailPage({
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-zinc-500">{t.product.noOptions}</p>
+              <p className="mt-2 text-sm text-zinc-400">{t.product.noOptions}</p>
             )}
           </div>
 
@@ -230,7 +230,7 @@ export default async function ProductDetailPage({
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-zinc-500">{t.product.noVariants}</p>
+              <p className="mt-2 text-sm text-zinc-400">{t.product.noVariants}</p>
             )}
           </div>
 

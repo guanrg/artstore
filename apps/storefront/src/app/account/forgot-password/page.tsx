@@ -33,10 +33,10 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8">
-      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-slate-900">Forgot password</h1>
-        <p className="mt-2 text-sm text-slate-600">
+    <main className="min-h-screen bg-gradient-to-b from-zinc-900 to-zinc-800 p-8">
+      <div className="mx-auto max-w-md rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-zinc-100">Forgot password</h1>
+        <p className="mt-2 text-sm text-zinc-400">
           Enter your account email and we will send reset instructions.
         </p>
         <form onSubmit={onSubmit} className="mt-4 space-y-4">
@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
-              className="w-full rounded-md border border-slate-300 px-3 py-2"
+              className="w-full rounded-md border border-zinc-600 px-3 py-2"
               required
             />
           </label>
@@ -57,10 +57,10 @@ export default function ForgotPasswordPage() {
           >
             {pending ? "Submitting..." : "Send reset link"}
           </button>
-          {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
+          {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
         </form>
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-sm text-zinc-400">
           Back to{" "}
           <Link href="/account/login" className="font-medium text-orange-700">
             Login

@@ -28,7 +28,7 @@ export function ProductGallery({ title, imageUrls, labels }: ProductGalleryProps
 
   if (!imageUrls.length) {
     return (
-        <div className="mt-6 flex h-72 items-center justify-center rounded-xl bg-slate-100 text-sm text-slate-500">
+        <div className="mt-6 flex h-72 items-center justify-center rounded-xl bg-zinc-800 text-sm text-zinc-400">
         {labels?.noImage ?? "No image"}
         </div>
       )
@@ -41,7 +41,7 @@ export function ProductGallery({ title, imageUrls, labels }: ProductGalleryProps
       <div className="mt-6 space-y-3">
         <button
           type="button"
-          className="block w-full overflow-hidden rounded-xl bg-slate-100"
+          className="block w-full overflow-hidden rounded-xl bg-zinc-800"
           onClick={() => setIsOpen(true)}
         >
           <Image
@@ -61,7 +61,7 @@ export function ProductGallery({ title, imageUrls, labels }: ProductGalleryProps
                 key={`${url}-${idx}`}
                 type="button"
                 onClick={() => setActiveIndex(idx)}
-                className={`overflow-hidden rounded-lg bg-slate-100 ring-2 ${
+                className={`overflow-hidden rounded-lg bg-zinc-800 ring-2 ${
                   idx === activeIndex ? "ring-orange-500" : "ring-transparent"
                 }`}
               >
@@ -82,7 +82,7 @@ export function ProductGallery({ title, imageUrls, labels }: ProductGalleryProps
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <button
             type="button"
-            className="absolute right-4 top-4 rounded bg-white/90 px-3 py-1 text-sm font-medium text-slate-900"
+            className="absolute right-4 top-4 rounded bg-zinc-900/90 px-3 py-1 text-sm font-medium text-zinc-100"
             onClick={() => setIsOpen(false)}
           >
             {labels?.close ?? "Close"}
@@ -92,7 +92,7 @@ export function ProductGallery({ title, imageUrls, labels }: ProductGalleryProps
             {imageUrls.length > 1 ? (
               <button
                 type="button"
-                className="absolute -left-3 z-10 rounded-full bg-white/90 px-3 py-2 text-sm font-medium text-slate-900 shadow-md"
+                className="absolute -left-3 z-10 rounded-full bg-zinc-900/90 px-3 py-2 text-sm font-medium text-zinc-100 shadow-md"
                 onClick={() => setActiveIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length)}
               >
                 {labels?.prev ?? "Prev"}
@@ -111,7 +111,7 @@ export function ProductGallery({ title, imageUrls, labels }: ProductGalleryProps
             {imageUrls.length > 1 ? (
               <button
                 type="button"
-                className="absolute -right-3 z-10 rounded-full bg-white/90 px-3 py-2 text-sm font-medium text-slate-900 shadow-md"
+                className="absolute -right-3 z-10 rounded-full bg-zinc-900/90 px-3 py-2 text-sm font-medium text-zinc-100 shadow-md"
                 onClick={() => setActiveIndex((prev) => (prev + 1) % imageUrls.length)}
               >
                 {labels?.next ?? "Next"}

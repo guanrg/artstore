@@ -48,29 +48,29 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   }, [params])
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8">
-      <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <main className="min-h-screen bg-gradient-to-b from-zinc-900 to-zinc-800 p-8">
+      <div className="mx-auto max-w-4xl rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
         <Link href="/account" className="text-sm font-medium text-orange-700">
           Back to account
         </Link>
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
-        {!error && !order ? <p className="mt-3 text-sm text-slate-500">Loading...</p> : null}
+        {!error && !order ? <p className="mt-3 text-sm text-zinc-400">Loading...</p> : null}
         {order ? (
           <>
             <h1 className="mt-3 text-2xl font-bold">Order #{order.display_id ?? order.id}</h1>
-            <p className="mt-1 text-sm text-slate-600">Status: {order.status ?? "N/A"}</p>
-            <p className="text-sm text-slate-600">Email: {order.email ?? "-"}</p>
-            <p className="text-sm text-slate-600">
+            <p className="mt-1 text-sm text-zinc-400">Status: {order.status ?? "N/A"}</p>
+            <p className="text-sm text-zinc-400">Email: {order.email ?? "-"}</p>
+            <p className="text-sm text-zinc-400">
               Total: {fmt(order.total ?? 0, order.currency_code)}
             </p>
 
             <section className="mt-5 space-y-2">
               <h2 className="text-lg font-semibold">Items</h2>
               {(order.items ?? []).map((item) => (
-                <article key={item.id} className="rounded-lg border border-slate-200 p-3 text-sm">
+                <article key={item.id} className="rounded-lg border border-zinc-700 p-3 text-sm">
                   <p className="font-medium">{item.title ?? "Item"}</p>
-                  <p className="text-slate-600">{item.variant_title ?? "Variant"}</p>
-                  <p className="text-slate-600">
+                  <p className="text-zinc-400">{item.variant_title ?? "Variant"}</p>
+                  <p className="text-zinc-400">
                     Qty: {item.quantity ?? 0} | Unit: {item.unit_price ?? 0}
                   </p>
                 </article>

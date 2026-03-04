@@ -135,7 +135,7 @@ export default function CartPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-zinc-950 via-black to-zinc-950 p-8 text-zinc-100">
-      <div className="mx-auto max-w-4xl rounded-2xl border border-[var(--border)] bg-zinc-900/70 p-6 shadow-sm">
+      <div className="mx-auto max-w-4xl rounded-lg border border-[var(--border)] bg-zinc-900/70 p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">{t.cart.title}</h1>
           <Link href="/" className="text-sm font-medium text-[var(--accent)]">
@@ -145,7 +145,7 @@ export default function CartPage() {
         {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
         {(cart?.items ?? []).length === 0 ? (
-          <p className="text-sm text-zinc-500">{t.cart.empty}</p>
+          <p className="text-sm text-zinc-400">{t.cart.empty}</p>
         ) : (
           <div className="space-y-3">
             {(cart?.items ?? []).map((item) => (
@@ -228,7 +228,7 @@ export default function CartPage() {
                   key={promo.id}
                   type="button"
                   onClick={() => removePromo(promo.code ?? "")}
-                  className="rounded-md bg-emerald-100 px-2 py-1 text-xs text-emerald-800"
+                  className="rounded-md bg-emerald-950/60 px-2 py-1 text-xs text-emerald-200"
                 >
                   {promo.code ?? promo.id} x
                 </button>
@@ -244,7 +244,7 @@ export default function CartPage() {
           </p>
           <Link
             href="/checkout"
-            className="mt-3 inline-flex rounded-md bg-[var(--accent)] px-4 py-2 font-medium text-black hover:bg-[var(--accent-strong)]"
+            className="mt-3 inline-flex rounded-md bg-[var(--accent)] px-4 py-2 font-medium text-zinc-950 hover:bg-[var(--accent-strong)]"
           >
             {t.cart.checkout}
           </Link>

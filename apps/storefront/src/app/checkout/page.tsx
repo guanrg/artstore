@@ -179,16 +179,16 @@ export default function CheckoutPage() {
   if (loading) return <main className="p-8">Loading checkout...</main>
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8">
+    <main className="min-h-screen bg-gradient-to-b from-zinc-900 to-zinc-800 p-8">
       <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-3">
-        <section className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">Checkout</h1>
-          <p className="mt-2 text-sm text-slate-600">Fill shipping and payment info to place your order.</p>
+        <section className="lg:col-span-2 rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+          <h1 className="text-2xl font-bold text-zinc-100">Checkout</h1>
+          <p className="mt-2 text-sm text-zinc-400">Fill shipping and payment info to place your order.</p>
 
           {savedAddresses.length > 0 ? (
-            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+            <div className="mt-4 rounded-xl border border-emerald-700 bg-emerald-950/40 p-3">
               <label className="text-sm">
-                <span className="mb-1 block font-medium text-emerald-900">Use saved address</span>
+                <span className="mb-1 block font-medium text-emerald-100">Use saved address</span>
                 <select
                   value={selectedAddressId}
                   onChange={(e) => {
@@ -209,7 +209,7 @@ export default function CheckoutPage() {
                       phone: selected.phone ?? "",
                     }))
                   }}
-                  className="w-full rounded-md border border-emerald-300 bg-white px-3 py-2"
+                  className="w-full rounded-md border border-emerald-700 bg-zinc-900 px-3 py-2"
                 >
                   {savedAddresses.map((addr) => (
                     <option key={addr.id} value={addr.id}>
@@ -218,7 +218,7 @@ export default function CheckoutPage() {
                   ))}
                 </select>
               </label>
-              <p className="mt-2 text-xs text-emerald-800">
+              <p className="mt-2 text-xs text-emerald-200">
                 You can manage addresses in <Link href="/account/addresses" className="underline">Address Book</Link>.
               </p>
             </div>
@@ -233,7 +233,7 @@ export default function CheckoutPage() {
                 onBlur={() => setTouched((p) => ({ ...p, email: true }))}
                 type="email"
                 className={`w-full rounded-md px-3 py-2 ${
-                  fieldInvalid("email", email) ? "border border-rose-500 bg-rose-50" : "border border-slate-300"
+                  fieldInvalid("email", email) ? "border border-rose-500 bg-rose-950/30" : "border border-zinc-600"
                 }`}
               />
             </label>
@@ -242,7 +242,7 @@ export default function CheckoutPage() {
               <input
                 value={shipping.phone}
                 onChange={(e) => setShipping((p) => ({ ...p, phone: e.target.value }))}
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-zinc-600 px-3 py-2"
               />
             </label>
             <label className="text-sm">
@@ -253,8 +253,8 @@ export default function CheckoutPage() {
                 onBlur={() => setTouched((p) => ({ ...p, first_name: true }))}
                 className={`w-full rounded-md px-3 py-2 ${
                   fieldInvalid("first_name", shipping.first_name)
-                    ? "border border-rose-500 bg-rose-50"
-                    : "border border-slate-300"
+                    ? "border border-rose-500 bg-rose-950/30"
+                    : "border border-zinc-600"
                 }`}
               />
             </label>
@@ -266,8 +266,8 @@ export default function CheckoutPage() {
                 onBlur={() => setTouched((p) => ({ ...p, last_name: true }))}
                 className={`w-full rounded-md px-3 py-2 ${
                   fieldInvalid("last_name", shipping.last_name)
-                    ? "border border-rose-500 bg-rose-50"
-                    : "border border-slate-300"
+                    ? "border border-rose-500 bg-rose-950/30"
+                    : "border border-zinc-600"
                 }`}
               />
             </label>
@@ -279,8 +279,8 @@ export default function CheckoutPage() {
                 onBlur={() => setTouched((p) => ({ ...p, address_1: true }))}
                 className={`w-full rounded-md px-3 py-2 ${
                   fieldInvalid("address_1", shipping.address_1)
-                    ? "border border-rose-500 bg-rose-50"
-                    : "border border-slate-300"
+                    ? "border border-rose-500 bg-rose-950/30"
+                    : "border border-zinc-600"
                 }`}
               />
             </label>
@@ -289,7 +289,7 @@ export default function CheckoutPage() {
               <input
                 value={shipping.address_2}
                 onChange={(e) => setShipping((p) => ({ ...p, address_2: e.target.value }))}
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-zinc-600 px-3 py-2"
               />
             </label>
             <label className="text-sm">
@@ -299,7 +299,7 @@ export default function CheckoutPage() {
                 onChange={(e) => setShipping((p) => ({ ...p, city: e.target.value }))}
                 onBlur={() => setTouched((p) => ({ ...p, city: true }))}
                 className={`w-full rounded-md px-3 py-2 ${
-                  fieldInvalid("city", shipping.city) ? "border border-rose-500 bg-rose-50" : "border border-slate-300"
+                  fieldInvalid("city", shipping.city) ? "border border-rose-500 bg-rose-950/30" : "border border-zinc-600"
                 }`}
               />
             </label>
@@ -308,7 +308,7 @@ export default function CheckoutPage() {
               <input
                 value={shipping.province}
                 onChange={(e) => setShipping((p) => ({ ...p, province: e.target.value }))}
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-zinc-600 px-3 py-2"
               />
             </label>
             <label className="text-sm">
@@ -319,8 +319,8 @@ export default function CheckoutPage() {
                 onBlur={() => setTouched((p) => ({ ...p, postal_code: true }))}
                 className={`w-full rounded-md px-3 py-2 ${
                   fieldInvalid("postal_code", shipping.postal_code)
-                    ? "border border-rose-500 bg-rose-50"
-                    : "border border-slate-300"
+                    ? "border border-rose-500 bg-rose-950/30"
+                    : "border border-zinc-600"
                 }`}
               />
             </label>
@@ -332,8 +332,8 @@ export default function CheckoutPage() {
                 onBlur={() => setTouched((p) => ({ ...p, country_code: true }))}
                 className={`w-full rounded-md px-3 py-2 ${
                   fieldInvalid("country_code", shipping.country_code)
-                    ? "border border-rose-500 bg-rose-50"
-                    : "border border-slate-300"
+                    ? "border border-rose-500 bg-rose-950/30"
+                    : "border border-zinc-600"
                 }`}
               >
                 <option value="au">Australia (AU)</option>
@@ -350,8 +350,8 @@ export default function CheckoutPage() {
                 onBlur={() => setTouched((p) => ({ ...p, shipping_option_id: true }))}
                 className={`w-full rounded-md px-3 py-2 ${
                   fieldInvalid("shipping_option_id", shippingOptionId)
-                    ? "border border-rose-500 bg-rose-50"
-                    : "border border-slate-300"
+                    ? "border border-rose-500 bg-rose-950/30"
+                    : "border border-zinc-600"
                 }`}
               >
                 {(data.shipping_options ?? []).map((opt) => (
@@ -369,8 +369,8 @@ export default function CheckoutPage() {
                 onBlur={() => setTouched((p) => ({ ...p, payment_provider_id: true }))}
                 className={`w-full rounded-md px-3 py-2 ${
                   fieldInvalid("payment_provider_id", paymentProviderId)
-                    ? "border border-rose-500 bg-rose-50"
-                    : "border border-slate-300"
+                    ? "border border-rose-500 bg-rose-950/30"
+                    : "border border-zinc-600"
                 }`}
               >
                 {(data.payment_providers ?? []).map((provider) => (
@@ -391,7 +391,7 @@ export default function CheckoutPage() {
             >
               {placing ? "Placing order..." : "Place order"}
             </button>
-            <Link href="/cart" className="text-sm font-medium text-slate-700">
+            <Link href="/cart" className="text-sm font-medium text-zinc-300">
               Back to cart
             </Link>
           </div>
@@ -407,13 +407,13 @@ export default function CheckoutPage() {
           ) : null}
         </section>
 
-        <aside className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <aside className="rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
           <h2 className="text-lg font-semibold">Order summary</h2>
           <div className="mt-4 space-y-2 text-sm">
             {(data.cart?.items ?? []).map((item) => (
-              <div key={item.id} className="rounded-md bg-slate-50 p-2">
+              <div key={item.id} className="rounded-md bg-zinc-800/70 p-2">
                 <p className="font-medium">{item.title}</p>
-                <p className="text-slate-600">
+                <p className="text-zinc-400">
                   {item.variant_title ?? "Variant"} x {item.quantity}
                 </p>
               </div>

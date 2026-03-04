@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #111827;
-  --surface: #ffffff;
-  --border: #e5e7eb;
-  --accent: #9a6a2f;
-  --accent-strong: #7a4f1d;
+  --background: #1f1f21;
+  --foreground: #f3f4f6;
+  --surface: #2a2b2f;
+  --border: #40434a;
+  --accent: #ad6a4b;
+  --accent-strong: #c77d5a;
 }
 
 @theme inline {
@@ -21,6 +21,18 @@ body {
   font-family: var(--font-body), "Segoe UI", sans-serif;
 }
 
+input,
+select,
+textarea {
+  background: #18191c;
+  color: #f3f4f6;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
+}
+
 h1,
 h2,
 h3,
@@ -31,15 +43,15 @@ h4 {
 
 .art-shell {
   background:
-    radial-gradient(80rem 28rem at 85% -15%, #f7ecd366 0%, transparent 58%),
-    radial-gradient(50rem 22rem at -10% 15%, #efe7d133 0%, transparent 52%),
-    linear-gradient(180deg, #ffffff 0%, #fbfbf9 45%, #f8f8f6 100%);
+    radial-gradient(80rem 28rem at 85% -15%, #4f3a3166 0%, transparent 58%),
+    radial-gradient(50rem 22rem at -10% 15%, #3b3a4160 0%, transparent 52%),
+    linear-gradient(180deg, #2a2b2f 0%, #232427 45%, #1c1d20 100%);
 }
 
 .glass-card {
-  background: color-mix(in srgb, var(--surface) 96%, #f7f7f7 4%);
-  border: 1px solid color-mix(in srgb, var(--border) 94%, #ececec 6%);
-  box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
+  background: color-mix(in srgb, var(--surface) 94%, #ffffff 6%);
+  border: 1px solid color-mix(in srgb, var(--border) 92%, #9ca3af 8%);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(4px);
 }
 

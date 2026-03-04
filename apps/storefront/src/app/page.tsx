@@ -169,6 +169,9 @@ async function getStrapiArticles(): Promise<{ data: StrapiArticle[]; error?: str
     })
 
     if (!res.ok) {
+      if (res.status === 404) {
+        return { data: [] }
+      }
       return { data: [], error: `Strapi API ${res.status}` }
     }
 
@@ -276,28 +279,28 @@ export default async function Home({
   return (
     <main className="art-shell min-h-screen p-6 md:p-8">
       <div className="mx-auto max-w-6xl space-y-10">
-        <section className="glass-card reveal-up relative overflow-hidden rounded-3xl p-7 md:p-10">
+        <section className="glass-card reveal-up relative overflow-hidden rounded-xl p-7 md:p-10">
           <div className="pointer-events-none absolute -right-28 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,#b7864860_0%,transparent_66%)]" />
           <div className="pointer-events-none absolute -left-28 bottom-0 h-48 w-48 rounded-full bg-[radial-gradient(circle,#cdb08a55_0%,transparent_70%)]" />
           <div className="relative grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.33em] text-zinc-700">{t.home.heroTag}</p>
-              <h1 className="mt-3 text-5xl leading-[0.98] text-zinc-900 md:text-6xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.33em] text-zinc-300">{t.home.heroTag}</p>
+              <h1 className="mt-3 text-5xl leading-[0.98] text-zinc-100 md:text-6xl">
                 {t.home.heroTitle1}
                 <br />
                 {t.home.heroTitle2}
               </h1>
-              <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-700 md:text-base">{t.home.heroDesc}</p>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-300 md:text-base">{t.home.heroDesc}</p>
               <div className="mt-6 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-zinc-700">{t.home.chip1}</span>
-                <span className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-zinc-700">{t.home.chip2}</span>
-                <span className="rounded-full border border-[var(--border)] bg-white px-3 py-1 text-zinc-700">{t.home.chip3}</span>
+                <span className="rounded-full border border-[var(--border)] bg-zinc-900 px-3 py-1 text-zinc-300">{t.home.chip1}</span>
+                <span className="rounded-full border border-[var(--border)] bg-zinc-900 px-3 py-1 text-zinc-300">{t.home.chip2}</span>
+                <span className="rounded-full border border-[var(--border)] bg-zinc-900 px-3 py-1 text-zinc-300">{t.home.chip3}</span>
               </div>
             </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t.home.statusTitle}</p>
-              <p className="mt-3 text-3xl text-zinc-900">{medusa.data.length}</p>
-              <p className="mt-1 text-sm text-zinc-600">{t.home.statusDesc}</p>
+            <div className="rounded-lg border border-[var(--border)] bg-zinc-900 p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">{t.home.statusTitle}</p>
+              <p className="mt-3 text-3xl text-zinc-100">{medusa.data.length}</p>
+              <p className="mt-1 text-sm text-zinc-400">{t.home.statusDesc}</p>
               <Link href="/account/register" className="accent-link mt-4 inline-block text-sm font-semibold">
                 {t.home.createAccount}
               </Link>
@@ -305,28 +308,28 @@ export default async function Home({
           </div>
         </section>
 
-        <section className="reveal-up rounded-3xl border border-[var(--border)] bg-white p-6 md:p-7">
+        <section className="reveal-up rounded-xl border border-[var(--border)] bg-zinc-900 p-6 md:p-7">
           <div className="mb-5 flex items-end justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">{t.home.catalogue}</p>
-              <h2 className="text-3xl text-zinc-900">{t.home.featured}</h2>
+              <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">{t.home.catalogue}</p>
+              <h2 className="text-3xl text-zinc-100">{t.home.featured}</h2>
             </div>
-            <p className="text-sm text-zinc-500">{medusa.total} {t.home.listed}</p>
+            <p className="text-sm text-zinc-400">{medusa.total} {t.home.listed}</p>
           </div>
 
           {medusa.error ? <p className="mb-4 text-sm text-rose-700">{medusa.error}</p> : null}
 
-          <form action="/" method="get" className="mb-4 grid gap-2 rounded-xl border border-[var(--border)] bg-zinc-50 p-3 md:grid-cols-[1fr_220px_auto]">
+          <form action="/" method="get" className="mb-4 grid gap-2 rounded-xl border border-[var(--border)] bg-zinc-800/70 p-3 md:grid-cols-[1fr_220px_auto]">
             <input
               name="q"
               defaultValue={query.q}
               placeholder={locale === "zh" ? "搜索商品标题..." : "Search products..."}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+              className="rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm"
             />
             <select
               name="sort"
               defaultValue={query.sort}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+              className="rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm"
             >
               <option value="latest">{locale === "zh" ? "最新" : "Latest"}</option>
               <option value="price_asc">{locale === "zh" ? "价格从低到高" : "Price: Low to High"}</option>
@@ -335,7 +338,7 @@ export default async function Home({
             </select>
             <button
               type="submit"
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
+              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-[var(--accent-strong)]"
             >
               {locale === "zh" ? "筛选" : "Apply"}
             </button>
@@ -346,12 +349,12 @@ export default async function Home({
               <Link
                 key={item.id}
                 href={`/products/${getProductSlug(item)}`}
-                className={`group overflow-hidden rounded-2xl border border-[var(--border)] bg-white transition hover:-translate-y-0.5 hover:shadow-xl ${
+                className={`group overflow-hidden rounded-lg border border-[var(--border)] bg-zinc-900 transition hover:-translate-y-0.5 hover:shadow-xl ${
                   index % 5 === 0 ? "md:col-span-2" : ""
                 }`}
               >
                 <article>
-                  <div className={`${index % 5 === 0 ? "h-72" : "h-56"} overflow-hidden bg-zinc-100`}>
+                  <div className={`${index % 5 === 0 ? "h-72" : "h-56"} overflow-hidden bg-zinc-800`}>
                     {item.thumbnail ? (
                       <Image
                         src={item.thumbnail}
@@ -361,17 +364,17 @@ export default async function Home({
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-zinc-500">{t.home.noImage}</div>
+                      <div className="flex h-full items-center justify-center text-xs text-zinc-400">{t.home.noImage}</div>
                     )}
                   </div>
                   <div className="p-4">
-                    <p className="line-clamp-1 text-lg text-zinc-900">{item.title}</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{item.subtitle || t.home.curatedPiece}</p>
+                    <p className="line-clamp-1 text-lg text-zinc-100">{item.title}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-zinc-400">{item.subtitle || t.home.curatedPiece}</p>
                     <div className="mt-3 flex items-center justify-between">
-                      <p className="text-sm font-semibold text-zinc-900">{formatAud(getFromPrice(item), t.home.priceOnRequest)}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{formatAud(getFromPrice(item), t.home.priceOnRequest)}</p>
                       <p className="accent-link text-xs font-semibold uppercase tracking-[0.18em]">{t.home.viewWork}</p>
                     </div>
-                    <p className="mt-2 text-xs text-zinc-500">
+                    <p className="mt-2 text-xs text-zinc-400">
                       {(item.options ?? []).map((opt) => opt.title).join(" / ") || t.home.standardDetails}
                     </p>
                   </div>
@@ -380,23 +383,23 @@ export default async function Home({
             ))}
           </div>
 
-          {medusa.data.length === 0 ? <p className="mt-4 text-sm text-zinc-500">{t.home.noProducts}</p> : null}
+          {medusa.data.length === 0 ? <p className="mt-4 text-sm text-zinc-400">{t.home.noProducts}</p> : null}
 
           {medusa.totalPages > 1 ? (
             <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4 text-sm">
-              <span className="text-zinc-500">
+              <span className="text-zinc-400">
                 {locale === "zh" ? `第 ${medusa.page} / ${medusa.totalPages} 页` : `Page ${medusa.page} / ${medusa.totalPages}`}
               </span>
               <div className="flex gap-2">
                 <Link
                   href={makeHref({ page: Math.max(1, medusa.page - 1) })}
-                  className={`rounded border px-3 py-1 ${medusa.page <= 1 ? "pointer-events-none opacity-40" : "hover:bg-zinc-50"}`}
+                  className={`rounded border px-3 py-1 ${medusa.page <= 1 ? "pointer-events-none opacity-40" : "hover:bg-zinc-800/70"}`}
                 >
                   {locale === "zh" ? "上一页" : "Prev"}
                 </Link>
                 <Link
                   href={makeHref({ page: Math.min(medusa.totalPages, medusa.page + 1) })}
-                  className={`rounded border px-3 py-1 ${medusa.page >= medusa.totalPages ? "pointer-events-none opacity-40" : "hover:bg-zinc-50"}`}
+                  className={`rounded border px-3 py-1 ${medusa.page >= medusa.totalPages ? "pointer-events-none opacity-40" : "hover:bg-zinc-800/70"}`}
                 >
                   {locale === "zh" ? "下一页" : "Next"}
                 </Link>
@@ -405,13 +408,13 @@ export default async function Home({
           ) : null}
         </section>
 
-        <section className="reveal-up grid gap-5 rounded-3xl border border-[var(--border)] bg-white p-6 md:grid-cols-3">
+        <section className="reveal-up grid gap-5 rounded-xl border border-[var(--border)] bg-zinc-900 p-6 md:grid-cols-3">
           {strapi.error ? <p className="md:col-span-3 text-sm text-rose-700">{strapi.error}</p> : null}
           {editorial.map((item) => (
-            <article key={item.id} className="rounded-2xl border border-[var(--border)] bg-white p-5">
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{t.home.editorial}</p>
-              <h3 className="mt-2 text-2xl leading-tight text-zinc-900">{item.title || t.home.untitled}</h3>
-              <p className="mt-2 text-sm text-zinc-600">{item.excerpt || t.home.noExcerpt}</p>
+            <article key={item.id} className="rounded-lg border border-[var(--border)] bg-zinc-900 p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">{t.home.editorial}</p>
+              <h3 className="mt-2 text-2xl leading-tight text-zinc-100">{item.title || t.home.untitled}</h3>
+              <p className="mt-2 text-sm text-zinc-400">{item.excerpt || t.home.noExcerpt}</p>
             </article>
           ))}
         </section>

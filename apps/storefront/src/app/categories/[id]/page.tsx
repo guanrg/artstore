@@ -119,12 +119,12 @@ export default async function CategoryDetailPage({
           Back to categories
         </Link>
 
-        <section className="rounded-2xl border border-[var(--border)] bg-zinc-900/70 p-6 shadow-sm">
+        <section className="rounded-lg border border-[var(--border)] bg-zinc-900/70 p-6 shadow-sm">
           <h1 className="text-3xl font-bold">{category.name || category.id}</h1>
           <p className="mt-2 text-sm text-zinc-400">{category.description || "Products under this category."}</p>
 
           {products.length === 0 ? (
-            <p className="mt-6 text-sm text-zinc-500">No products in this category yet.</p>
+            <p className="mt-6 text-sm text-zinc-400">No products in this category yet.</p>
           ) : (
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               {products.map((item) => (
@@ -143,7 +143,7 @@ export default async function CategoryDetailPage({
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-zinc-500">No image</div>
+                      <div className="flex h-full items-center justify-center text-xs text-zinc-400">No image</div>
                     )}
                   </div>
                   <div className="p-4">

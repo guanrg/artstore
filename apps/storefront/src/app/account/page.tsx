@@ -72,10 +72,10 @@ export default function AccountPage() {
 
   if (!customer) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <main className="min-h-screen bg-gradient-to-b from-zinc-900 to-zinc-800 p-8">
+        <div className="mx-auto max-w-3xl rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
           <h1 className="text-2xl font-bold">Account</h1>
-          <p className="mt-2 text-slate-600">You are not logged in.</p>
+          <p className="mt-2 text-zinc-400">You are not logged in.</p>
           <Link href="/account/login" className="mt-4 inline-flex font-medium text-orange-700">
             Go to login
           </Link>
@@ -149,16 +149,16 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white p-8">
+    <main className="min-h-screen bg-gradient-to-b from-zinc-900 to-zinc-800 p-8">
       <div className="mx-auto max-w-3xl space-y-6">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">My Account</h1>
-          <p className="mt-2 text-slate-600">
+        <section className="rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+          <h1 className="text-2xl font-bold text-zinc-100">My Account</h1>
+          <p className="mt-2 text-zinc-400">
             {customer.first_name} {customer.last_name} ({customer.email})
           </p>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
           <h2 className="text-xl font-semibold">Profile</h2>
           <form onSubmit={saveProfile} className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="text-sm">
@@ -166,7 +166,7 @@ export default function AccountPage() {
               <input
                 value={profile.first_name}
                 onChange={(e) => setProfile((p) => ({ ...p, first_name: e.target.value }))}
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-zinc-600 px-3 py-2"
               />
             </label>
             <label className="text-sm">
@@ -174,7 +174,7 @@ export default function AccountPage() {
               <input
                 value={profile.last_name}
                 onChange={(e) => setProfile((p) => ({ ...p, last_name: e.target.value }))}
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-zinc-600 px-3 py-2"
               />
             </label>
             <label className="text-sm sm:col-span-2">
@@ -182,23 +182,23 @@ export default function AccountPage() {
               <input
                 value={profile.phone}
                 onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-zinc-600 px-3 py-2"
               />
             </label>
             <div className="sm:col-span-2">
               <button
                 type="submit"
                 disabled={profilePending}
-                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-black disabled:opacity-60"
+                className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-[var(--accent-strong)] disabled:opacity-60"
               >
                 {profilePending ? "Saving..." : "Save profile"}
               </button>
-              {profileMessage ? <p className="mt-2 text-sm text-slate-600">{profileMessage}</p> : null}
+              {profileMessage ? <p className="mt-2 text-sm text-zinc-400">{profileMessage}</p> : null}
             </div>
           </form>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
           <h2 className="text-xl font-semibold">Password</h2>
           <form onSubmit={changePassword} className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="text-sm sm:col-span-2">
@@ -207,7 +207,7 @@ export default function AccountPage() {
                 type="password"
                 value={passwordForm.current_password}
                 onChange={(e) => setPasswordForm((p) => ({ ...p, current_password: e.target.value }))}
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-zinc-600 px-3 py-2"
                 required
               />
             </label>
@@ -217,7 +217,7 @@ export default function AccountPage() {
                 type="password"
                 value={passwordForm.new_password}
                 onChange={(e) => setPasswordForm((p) => ({ ...p, new_password: e.target.value }))}
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-zinc-600 px-3 py-2"
                 required
               />
             </label>
@@ -227,7 +227,7 @@ export default function AccountPage() {
                 type="password"
                 value={passwordForm.confirm_password}
                 onChange={(e) => setPasswordForm((p) => ({ ...p, confirm_password: e.target.value }))}
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-zinc-600 px-3 py-2"
                 required
               />
             </label>
@@ -235,26 +235,26 @@ export default function AccountPage() {
               <button
                 type="submit"
                 disabled={passwordPending}
-                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-black disabled:opacity-60"
+                className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-[var(--accent-strong)] disabled:opacity-60"
               >
                 {passwordPending ? "Updating..." : "Change password"}
               </button>
-              {passwordMessage ? <p className="mt-2 text-sm text-slate-600">{passwordMessage}</p> : null}
+              {passwordMessage ? <p className="mt-2 text-sm text-zinc-400">{passwordMessage}</p> : null}
             </div>
           </form>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
           <h2 className="text-xl font-semibold">My Orders</h2>
           {(orders ?? []).length === 0 ? (
-            <p className="mt-3 text-sm text-slate-500">No orders yet.</p>
+            <p className="mt-3 text-sm text-zinc-400">No orders yet.</p>
           ) : (
             <div className="mt-4 space-y-2">
               {orders.map((order) => (
-                <article key={order.id} className="rounded-lg border border-slate-200 p-3 text-sm">
+                <article key={order.id} className="rounded-lg border border-zinc-700 p-3 text-sm">
                   <p className="font-medium">Order #{order.display_id ?? order.id}</p>
-                  <p className="text-slate-600">Status: {order.status ?? "N/A"}</p>
-                  <p className="text-slate-600">
+                  <p className="text-zinc-400">Status: {order.status ?? "N/A"}</p>
+                  <p className="text-zinc-400">
                     Total: {fmt(order.total ?? 0, order.currency_code)}
                   </p>
                   <Link
@@ -269,7 +269,7 @@ export default function AccountPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-lg border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
           <h2 className="text-xl font-semibold">Address Book</h2>
           <Link href="/account/addresses" className="mt-2 inline-flex text-sm font-medium text-orange-700">
             Manage addresses

@@ -9,15 +9,15 @@ export default function CheckoutSuccessPage() {
   const displayId = search.get("display_id") ?? ""
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-emerald-50 to-white p-8">
-      <div className="mx-auto max-w-2xl rounded-2xl border border-emerald-200 bg-white p-8 shadow-sm">
-        <p className="text-sm font-medium uppercase tracking-widest text-emerald-700">Success</p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-900">Order placed</h1>
-        <p className="mt-3 text-slate-600">
+    <main className="min-h-screen bg-gradient-to-b from-zinc-900 to-zinc-800 p-8">
+      <div className="mx-auto max-w-2xl rounded-lg border border-emerald-700 bg-zinc-900 p-8 shadow-sm">
+        <p className="text-sm font-medium uppercase tracking-widest text-emerald-300">Success</p>
+        <h1 className="mt-2 text-3xl font-bold text-zinc-100">Order placed</h1>
+        <p className="mt-3 text-zinc-400">
           Your order has been created successfully.
         </p>
 
-        <div className="mt-5 rounded-xl bg-slate-50 p-4 text-sm">
+        <div className="mt-5 rounded-xl bg-zinc-800/70 p-4 text-sm">
           <p>
             <span className="font-medium">Order ID:</span> {orderId || "N/A"}
           </p>
@@ -30,13 +30,13 @@ export default function CheckoutSuccessPage() {
           <Link href="/" className="rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700">
             Back to store
           </Link>
-          <Link href="/account" className="rounded-md border border-slate-300 px-4 py-2 font-medium text-slate-700">
+          <Link href="/account" className="rounded-md border border-zinc-600 px-4 py-2 font-medium text-zinc-300">
             Go to account
           </Link>
           {orderId ? (
             <Link
               href={`/account/orders/${orderId}`}
-              className="rounded-md border border-slate-300 px-4 py-2 font-medium text-slate-700"
+              className="rounded-md border border-zinc-600 px-4 py-2 font-medium text-zinc-300"
             >
               View order details
             </Link>

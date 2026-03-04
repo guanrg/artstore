@@ -47,3 +47,5 @@ npm run android:open
 - `npm run cap:sync`
 - `npm run cap:open:android`
 - `npm run cap:run:android`
+## DB
+- `docker compose exec postgres psql -U postgres -d medusa`
