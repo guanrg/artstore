@@ -25,12 +25,16 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json()) as Record<string, unknown>
+  const payload = {
+    ...body,
+    country_code: "au",
+  }
   const created = await medusaRequest<{ customer: Record<string, unknown> }>(
     "/store/customers/me/addresses",
     {
       method: "POST",
       token,
-      body: body as Record<string, string | number | boolean | null>,
+      body: payload as Record<string, string | number | boolean | null>,
     },
   )
   if (!created.ok) {

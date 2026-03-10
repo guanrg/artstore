@@ -10,10 +10,22 @@ export default async function migrateStoreToAu({ container }: ExecArgs) {
     entity: "store",
     fields: ["id", "supported_currencies.currency_code", "supported_currencies.is_default"],
   })
+  const { data: regions } = await query.graph({
+    entity: "region",
+    fields: ["id", "currency_code", "countries.iso_2"],
+  })
 
   const store = stores?.[0]
   if (!store?.id) {
     throw new Error("Store not found")
+  }
+
+  const auRegion = (regions ?? []).find((region: any) =>
+    (region.countries ?? []).some((country: any) => country.iso_2?.toLowerCase() === "au")
+  ) ?? (regions ?? []).find((region: any) => region.currency_code?.toLowerCase() === "aud")
+
+  if (!auRegion?.id) {
+    throw new Error("AU region not found. Run setup:au-only first.")
   }
 
   await updateStoresWorkflow(container).run({
@@ -21,10 +33,11 @@ export default async function migrateStoreToAu({ container }: ExecArgs) {
       selector: { id: store.id },
       update: {
         supported_currencies: [{ currency_code: "aud", is_default: true }],
+        default_region_id: auRegion.id,
       },
     },
   })
-  logger.info("Store currency updated: AUD (default)")
+  logger.info(`Store currency updated: AUD (default), default region: ${auRegion.id}`)
 
   const { data: variants } = await query.graph({
     entity: "product_variant",

@@ -11,6 +11,7 @@
     "dev:medusa": "npm --prefix apps/medusa run dev",
     "dev:strapi": "npm --prefix apps/strapi run develop",
     "dev:storefront": "npm --prefix apps/storefront run dev",
+    "seed:showcase": "npm --prefix apps/medusa run seed:showcase",
     "setup:au-only": "npm --prefix apps/medusa run setup:au-only",
     "setup:au-checkout": "npm --prefix apps/medusa run setup:au-checkout",
     "setup:au-all": "npm --prefix apps/medusa run setup:au-all",

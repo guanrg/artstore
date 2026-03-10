@@ -93,10 +93,11 @@ export default async function enforceAuStore({ container }: ExecArgs) {
       selector: { id: store.id },
       update: {
         supported_currencies: [{ currency_code: "aud", is_default: true }],
+        default_region_id: auRegionId,
       },
     },
   })
 
   logger.info("Store currency set to AUD only (default)")
-  logger.info(`Store region target: Australia (${auRegionId})`)
+  logger.info(`Store default region set: Australia (${auRegionId})`)
 }

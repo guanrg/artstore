@@ -2,6 +2,29 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { CUSTOMER_TOKEN_COOKIE, medusaRequest } from "@/lib/medusa-server"
 
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const token = (await cookies()).get(CUSTOMER_TOKEN_COOKIE)?.value
+  if (!token) {
+    return NextResponse.json({ message: "Not logged in" }, { status: 401 })
+  }
+
+  const body = (await req.json()) as Record<string, unknown>
+  const payload = {
+    ...body,
+    country_code: "au",
+  }
+  const updated = await medusaRequest<Record<string, unknown>>(`/store/customers/me/addresses/${id}`, {
+    method: "POST",
+    token,
+    body: payload as Record<string, string | number | boolean | null>,
+  })
+  if (!updated.ok) {
+    return NextResponse.json({ message: updated.message }, { status: updated.status })
+  }
+  return NextResponse.json(updated.data)
+}
+
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const token = (await cookies()).get(CUSTOMER_TOKEN_COOKIE)?.value

@@ -43,6 +43,20 @@ const buttonStyle: CSSProperties = {
   fontSize: 14,
 };
 
+const checkboxStyle: CSSProperties = {
+  width: 18,
+  height: 18,
+  border: "1.5px solid #111827",
+  borderRadius: 4,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 13,
+  fontWeight: 700,
+  lineHeight: 1,
+  userSelect: "none",
+};
+
 const YahooImportWidget = () => {
   const [url, setUrl] = useState("");
   const [priceAud, setPriceAud] = useState("");
@@ -148,13 +162,29 @@ const YahooImportWidget = () => {
           />
         </label>
 
-        <label style={{ fontSize: 13, marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
+        <label
+          style={{ fontSize: 13, marginTop: 12, display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+        >
           <input
             type="checkbox"
             checked={translateEnabled}
             onChange={(e) => setTranslateEnabled(e.target.checked)}
+            style={{
+              ...checkboxStyle,
+              appearance: "none",
+              background: translateEnabled ? "#111827" : "#fff",
+              color: "#fff",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center",
+              backgroundSize: "12px 12px",
+              backgroundImage: translateEnabled
+                ? 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 20 20\' fill=\'none\' stroke=\'white\' stroke-width=\'3\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'M4 10l4 4 8-8\'/%3E%3C/svg%3E")'
+                : "none",
+              cursor: "pointer",
+              margin: 0,
+            }}
           />
-          Auto translate title/description
+          <span>Auto translate title/description</span>
         </label>
 
         <label style={{ fontSize: 13, marginTop: 12, display: "block" }}>

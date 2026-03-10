@@ -11,7 +11,7 @@ Monorepo structure:
 - Node.js 20+
 - npm 10+
 - Docker (for Postgres + Redis)
-
+- WSL
 ## Quick start
 
 Use one command to start infra + all services:

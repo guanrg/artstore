@@ -15,6 +15,7 @@
   "scripts": {
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
+    "seed:showcase": "medusa exec ./src/scripts/seed-showcase.ts",
     "setup:au-only": "medusa exec ./src/scripts/enforce-au-store.ts",
     "setup:au-checkout": "medusa exec ./src/scripts/enable-au-checkout.ts",
     "setup:au-all": "npm run setup:au-only && npm run setup:au-checkout",

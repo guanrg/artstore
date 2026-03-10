@@ -5,6 +5,71 @@ const REASON_KEY = "reason"
 const REASON_AUTH_FAILED = "auth-failed"
 const ENABLE_ADMIN_LOGIN_GUARD = true
 const ADMIN_LOGIN_EMAIL_KEY = "medusa_admin_login_email"
+const ADMIN_LANG_CODE = "zhCN"
+const ADMIN_LANG_RELOAD_KEY = "medusa_admin_lang_reload_once"
+const ADMIN_REMEMBER_TOKEN_KEY = "medusa_admin_login_token"
+const ADMIN_REMEMBER_TOKEN_EXPIRES_AT_KEY = "medusa_admin_login_token_expires_at"
+const ADMIN_REMEMBER_TOKEN_TTL_MS = 30 * 60 * 1000
+
+function saveAdminLoginEmail(value?: string) {
+  const email = (value || "").trim()
+  if (!email) {
+    return
+  }
+  localStorage.setItem(ADMIN_LOGIN_EMAIL_KEY, email)
+}
+
+function extractEmailFromLoginRequest(init?: RequestInit): string | undefined {
+  const body = init?.body
+  if (!body) return undefined
+
+  if (typeof body === "string") {
+    try {
+      const parsed = JSON.parse(body) as { email?: string }
+      return parsed?.email
+    } catch {
+      return undefined
+    }
+  }
+
+  if (body instanceof URLSearchParams) {
+    return body.get("email") ?? undefined
+  }
+
+  if (body instanceof FormData) {
+    const email = body.get("email")
+    return typeof email === "string" ? email : undefined
+  }
+
+  return undefined
+}
+
+function saveAdminLoginToken(token?: string) {
+  const value = (token || "").trim()
+  if (!value) {
+    return
+  }
+  localStorage.setItem(ADMIN_REMEMBER_TOKEN_KEY, value)
+  localStorage.setItem(
+    ADMIN_REMEMBER_TOKEN_EXPIRES_AT_KEY,
+    String(Date.now() + ADMIN_REMEMBER_TOKEN_TTL_MS)
+  )
+}
+
+function clearAdminLoginToken() {
+  localStorage.removeItem(ADMIN_REMEMBER_TOKEN_KEY)
+  localStorage.removeItem(ADMIN_REMEMBER_TOKEN_EXPIRES_AT_KEY)
+}
+
+function getValidAdminLoginToken() {
+  const token = localStorage.getItem(ADMIN_REMEMBER_TOKEN_KEY)
+  const expiresAt = Number(localStorage.getItem(ADMIN_REMEMBER_TOKEN_EXPIRES_AT_KEY) || "0")
+  if (!token || !expiresAt || Number.isNaN(expiresAt) || Date.now() > expiresAt) {
+    clearAdminLoginToken()
+    return ""
+  }
+  return token
+}
 
 function isAdminLoginCall(input: RequestInfo | URL, init?: RequestInit): boolean {
   const method = (init?.method || "GET").toUpperCase()
@@ -26,6 +91,20 @@ function appendReasonToLoginUrl() {
   url.pathname = "/app/login"
   url.searchParams.set(REASON_KEY, REASON_AUTH_FAILED)
   return url.toString()
+}
+
+function isAuthSessionDeleteCall(input: RequestInfo | URL, init?: RequestInit): boolean {
+  const method = (init?.method || "GET").toUpperCase()
+  if (method !== "DELETE") {
+    return false
+  }
+  const rawUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url
+  try {
+    const url = new URL(rawUrl, window.location.origin)
+    return url.pathname.endsWith("/auth/session")
+  } catch {
+    return false
+  }
 }
 
 async function enforceAdminUser(fetchImpl: typeof window.fetch) {
@@ -64,16 +143,96 @@ function useInstallLoginGuard() {
 
     const originalFetch = window.fetch.bind(window)
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      try {
+        if (isAdminLoginCall(input, init)) {
+          saveAdminLoginEmail(extractEmailFromLoginRequest(init))
+        }
+        if (isAuthSessionDeleteCall(input, init)) {
+          clearAdminLoginToken()
+        }
+      } catch {
+        // Never block request due to helper logic.
+      }
+
       const response = await originalFetch(input, init)
 
-      if (isAdminLoginCall(input, init) && response.ok) {
-        setTimeout(() => {
-          void enforceAdminUser(originalFetch)
-        }, 150)
+      try {
+        if (isAdminLoginCall(input, init) && response.ok) {
+          void response
+            .clone()
+            .json()
+            .then((data: unknown) => {
+              const token =
+                data && typeof data === "object" && "token" in data
+                  ? String((data as { token?: string }).token || "")
+                  : ""
+              saveAdminLoginToken(token)
+            })
+            .catch(() => {})
+
+          setTimeout(() => {
+            void enforceAdminUser(originalFetch)
+          }, 150)
+        }
+      } catch {
+        // Never block request due to helper logic.
       }
 
       return response
     }
+  }, [])
+}
+
+function useRestoreAdminSession() {
+  useEffect(() => {
+    const marker = "__medusa_admin_session_restore_installed__"
+    const globalScope = window as unknown as Record<string, unknown>
+    if (globalScope[marker]) {
+      return
+    }
+    globalScope[marker] = true
+
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+    const tryRestore = async () => {
+      const token = getValidAdminLoginToken()
+      if (!token) {
+        return
+      }
+
+      for (let i = 0; i < 8; i++) {
+        try {
+          const me = await fetch("/admin/users/me", { credentials: "include" })
+          if (me.ok) {
+            return
+          }
+
+          const restore = await fetch("/auth/session", {
+            method: "POST",
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+          })
+
+          if (restore.ok) {
+            if (/^\/app\/login\/?$/.test(window.location.pathname)) {
+              window.location.assign("/app")
+            }
+            return
+          }
+
+          if (restore.status === 401 || restore.status === 403) {
+            clearAdminLoginToken()
+            return
+          }
+        } catch {
+          // Backend may be restarting; retry briefly.
+        }
+        await wait(1500)
+      }
+    }
+
+    void tryRestore()
   }, [])
 }
 
@@ -119,6 +278,46 @@ function useInstallAdminTitle() {
   }, [])
 }
 
+function useCustomizeLoginHeading() {
+  useEffect(() => {
+    const marker = "__medusa_admin_login_heading_customized__"
+    const globalScope = window as unknown as Record<string, unknown>
+    if (globalScope[marker]) {
+      return
+    }
+    globalScope[marker] = true
+
+    const apply = () => {
+      if (!/^\/app\/login\/?$/.test(window.location.pathname)) {
+        return
+      }
+
+      const candidates = Array.from(document.querySelectorAll<HTMLElement>("h1, h2"))
+      const target =
+        candidates.find((el) => {
+          const text = (el.textContent || "").trim().toLowerCase()
+          return text.includes("medusa") || text.includes("欢迎使用")
+        }) ?? candidates[0]
+
+      if (!target) {
+        return
+      }
+
+      target.textContent = "Art Store Admin"
+      target.style.fontSize = "34px"
+      target.style.lineHeight = "1.12"
+      target.style.fontWeight = "800"
+      target.style.letterSpacing = "0.01em"
+    }
+
+    apply()
+    const observer = new MutationObserver(() => apply())
+    observer.observe(document.body, { subtree: true, childList: true, characterData: true })
+    window.addEventListener("popstate", apply)
+    window.addEventListener("hashchange", apply)
+  }, [])
+}
+
 function useRememberLoginEmail() {
   useEffect(() => {
     const marker = "__medusa_admin_login_email_remember_installed__"
@@ -129,14 +328,6 @@ function useRememberLoginEmail() {
     globalScope[marker] = true
 
     const onLoginPage = () => /^\/app\/login\/?$/.test(window.location.pathname)
-    const saveEmail = (value?: string) => {
-      const email = (value || "").trim()
-      if (!email) {
-        return
-      }
-      localStorage.setItem(ADMIN_LOGIN_EMAIL_KEY, email)
-    }
-
     const bind = () => {
       if (!onLoginPage()) {
         return
@@ -153,10 +344,11 @@ function useRememberLoginEmail() {
       if (saved && !input.value) {
         input.value = saved
         input.dispatchEvent(new Event("input", { bubbles: true }))
+        input.dispatchEvent(new Event("change", { bubbles: true }))
       }
 
       if (!input.dataset.rememberEmailBound) {
-        const handler = () => saveEmail(input.value)
+        const handler = () => saveAdminLoginEmail(input.value)
         input.addEventListener("input", handler)
         input.addEventListener("blur", handler)
         input.dataset.rememberEmailBound = "true"
@@ -164,7 +356,7 @@ function useRememberLoginEmail() {
 
       const form = input.form ?? document.querySelector<HTMLFormElement>("form")
       if (form && !form.dataset.rememberEmailBound) {
-        form.addEventListener("submit", () => saveEmail(input.value))
+        form.addEventListener("submit", () => saveAdminLoginEmail(input.value))
         form.dataset.rememberEmailBound = "true"
       }
     }
@@ -196,14 +388,138 @@ function useApplyAdminTheme() {
       [class*="border-ui-border"], [class*="border-ui-border-base"], [class*="border-ui-border-component"] {
         border-color: #e8dca8 !important;
       }
+
+      /* Make checkbox/radio selected state obvious across admin pages. */
+      input[type="checkbox"] {
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        width: 16px !important;
+        height: 16px !important;
+        border: 1.5px solid #111827 !important;
+        border-radius: 4px !important;
+        background: #ffffff !important;
+        display: inline-grid !important;
+        place-content: center !important;
+        margin: 0 !important;
+        vertical-align: middle !important;
+      }
+      input[type="checkbox"]::before {
+        content: "" !important;
+        width: 10px !important;
+        height: 10px !important;
+        transform: scale(0) !important;
+        transition: transform 120ms ease-in-out !important;
+        clip-path: polygon(14% 44%, 0 60%, 38% 100%, 100% 20%, 84% 6%, 36% 67%) !important;
+        background: #ffffff !important;
+      }
+      input[type="checkbox"]:checked {
+        background: #111827 !important;
+        border-color: #111827 !important;
+      }
+      input[type="checkbox"]:checked::before {
+        transform: scale(1) !important;
+      }
+
+      input[type="radio"] {
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        width: 16px !important;
+        height: 16px !important;
+        border: 1.5px solid #111827 !important;
+        border-radius: 999px !important;
+        background: #ffffff !important;
+        display: inline-grid !important;
+        place-content: center !important;
+        margin: 0 !important;
+        vertical-align: middle !important;
+      }
+      input[type="radio"]::before {
+        content: "" !important;
+        width: 8px !important;
+        height: 8px !important;
+        border-radius: 999px !important;
+        transform: scale(0) !important;
+        transition: transform 120ms ease-in-out !important;
+        background: #ffffff !important;
+      }
+      input[type="radio"]:checked {
+        background: #111827 !important;
+        border-color: #111827 !important;
+      }
+      input[type="radio"]:checked::before {
+        transform: scale(1) !important;
+      }
+
+      [role="checkbox"][data-state="checked"] {
+        background-color: #111827 !important;
+        border-color: #111827 !important;
+      }
+      button[role="checkbox"][data-state="checked"],
+      [role="checkbox"][aria-checked="true"],
+      button[aria-checked="true"] {
+        background-color: #111827 !important;
+        border-color: #111827 !important;
+        color: #ffffff !important;
+      }
+      [role="checkbox"][data-state="checked"] svg,
+      button[role="checkbox"][data-state="checked"] svg,
+      [role="checkbox"][aria-checked="true"] svg {
+        color: #ffffff !important;
+        stroke: #ffffff !important;
+      }
+      button[role="checkbox"][data-state="checked"]::after,
+      [role="checkbox"][aria-checked="true"]::after,
+      button[aria-checked="true"]::after {
+        content: "✓" !important;
+        color: #ffffff !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+      }
+
+      [role="radio"][data-state="checked"] {
+        background-color: #111827 !important;
+        border-color: #111827 !important;
+      }
+      button[role="radio"][data-state="checked"],
+      [role="radio"][aria-checked="true"] {
+        background-color: #111827 !important;
+        border-color: #111827 !important;
+      }
     `
     document.head.appendChild(style)
   }, [])
 }
 
+function useForceAdminChinese() {
+  useEffect(() => {
+    const current = localStorage.getItem("lng")
+    const hasCookie = document.cookie
+      .split(";")
+      .map((v) => v.trim())
+      .some((pair) => pair === `lng=${ADMIN_LANG_CODE}`)
+
+    const changed = current !== ADMIN_LANG_CODE || !hasCookie
+    if (!changed) {
+      return
+    }
+
+    localStorage.setItem("lng", ADMIN_LANG_CODE)
+    document.cookie = `lng=${ADMIN_LANG_CODE}; path=/; max-age=31536000; samesite=lax`
+
+    if (!sessionStorage.getItem(ADMIN_LANG_RELOAD_KEY)) {
+      sessionStorage.setItem(ADMIN_LANG_RELOAD_KEY, "1")
+      window.location.reload()
+    }
+  }, [])
+}
+
 const AdminLoginGuardWidget = () => {
+  useForceAdminChinese()
+  useRestoreAdminSession()
   useInstallLoginGuard()
   useInstallAdminTitle()
+  useCustomizeLoginHeading()
   useRememberLoginEmail()
   useApplyAdminTheme()
 
@@ -242,7 +558,7 @@ const AdminLoginGuardWidget = () => {
         fontSize: 13,
       }}
     >
-      Invalid email or password.
+      邮箱或密码错误。
     </div>
   )
 }
