@@ -24,6 +24,9 @@ module.exports = defineConfig({
   },
   modules: [
     {
+      resolve: "./src/modules/crm",
+    },
+    {
       resolve: "@medusajs/medusa/notification",
       options: {
         providers: [emailProvider],
