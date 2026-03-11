@@ -4,17 +4,17 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
-import { CRM_MODULE } from "../../../../modules/crm"
-import { LeadStatus } from "../../../../modules/crm/models/lead"
-import type CrmModuleService from "../../../../modules/crm/service"
+import { CRM_MODULE } from "../../../../../modules/crm"
+import type CrmModuleService from "../../../../../modules/crm/service"
+import { LeadStatus } from "../../../../../modules/crm/models/lead"
 
-type CreateLeadBody = {
+type UpdateLeadBody = {
   name?: string
   email?: string
   company?: string
   source?: string
   status?: LeadStatus
-  customer_id?: string
+  customer_id?: string | null
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -39,10 +39,7 @@ function sendError(res: MedusaResponse, error: unknown) {
   res.status(500).json({ message })
 }
 
-async function createLinkIfNotExists(
-  link: any,
-  data: any
-) {
+async function createLinkIfNotExists(link: any, data: any) {
   try {
     await link.create(data)
   } catch (error) {
@@ -58,36 +55,28 @@ async function createLinkIfNotExists(
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   try {
-    const crmService: CrmModuleService = req.scope.resolve(CRM_MODULE)
-    const [leads, count] = await crmService.listAndCountLeadRecords(
-      req.filterableFields ?? {},
-      req.listConfig ?? {}
-    )
+    const { id } = req.params
+    if (!isNonEmptyString(id)) {
+      res.status(400).json({ message: "Lead id is required in path params" })
+      return
+    }
 
-    res.status(200).json({
-      leads,
-      count,
-      limit: req.validatedQuery?.limit ?? null,
-      offset: req.validatedQuery?.offset ?? null,
-    })
+    const crmService: CrmModuleService = req.scope.resolve(CRM_MODULE)
+    const lead = await crmService.retrieveLeadById(id)
+
+    res.status(200).json({ lead })
   } catch (error) {
     sendError(res, error)
   }
 }
 
-export async function POST(req: MedusaRequest<CreateLeadBody>, res: MedusaResponse) {
+export async function PATCH(req: MedusaRequest<UpdateLeadBody>, res: MedusaResponse) {
   try {
-    const body = (req.validatedBody ?? req.body ?? {}) as CreateLeadBody
+    const { id } = req.params
+    const body = (req.validatedBody ?? req.body ?? {}) as UpdateLeadBody
 
-    if (
-      !isNonEmptyString(body.name) ||
-      !isNonEmptyString(body.email) ||
-      !isNonEmptyString(body.company) ||
-      !isNonEmptyString(body.source)
-    ) {
-      res.status(400).json({
-        message: "name, email, company, and source are required",
-      })
+    if (!isNonEmptyString(id)) {
+      res.status(400).json({ message: "Lead id is required in path params" })
       return
     }
 
@@ -99,24 +88,43 @@ export async function POST(req: MedusaRequest<CreateLeadBody>, res: MedusaRespon
       await customerModuleService.retrieveCustomer(body.customer_id)
     }
 
-    const lead = await crmService.createLead({
+    const lead = await crmService.updateLead({
+      id,
       name: body.name,
       email: body.email,
       company: body.company,
       source: body.source,
       status: body.status,
-      customer_id: body.customer_id ?? null,
+      customer_id: body.customer_id,
     })
 
     if (body.customer_id) {
       await createLinkIfNotExists(link, {
-        [CRM_MODULE]: { lead_id: lead.id },
+        [CRM_MODULE]: { lead_id: id },
         [Modules.CUSTOMER]: { customer_id: body.customer_id },
       })
     }
 
-    res.status(201).json({ lead })
+    res.status(200).json({ lead })
   } catch (error) {
     sendError(res, error)
   }
 }
+
+export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
+  try {
+    const { id } = req.params
+    if (!isNonEmptyString(id)) {
+      res.status(400).json({ message: "Lead id is required in path params" })
+      return
+    }
+
+    const crmService: CrmModuleService = req.scope.resolve(CRM_MODULE)
+    await crmService.deleteLead(id)
+
+    res.status(200).json({ id, object: "lead", deleted: true })
+  } catch (error) {
+    sendError(res, error)
+  }
+}
+

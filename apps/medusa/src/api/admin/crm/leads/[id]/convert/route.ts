@@ -78,7 +78,7 @@ function parseDateOrNull(value?: string): Date | null | undefined {
 export async function POST(req: MedusaRequest<ConvertLeadBody>, res: MedusaResponse) {
   try {
     const { id } = req.params
-    const body = req.body ?? {}
+    const body = (req.validatedBody ?? req.body ?? {}) as ConvertLeadBody
 
     if (!isNonEmptyString(id)) {
       res.status(400).json({ message: "Lead id is required in path params" })

@@ -162,6 +162,27 @@ npx medusa db:migrate
 ### 与 Customer 的关系
 CRM 使用 Medusa v2 的 **Module Link** 与原生 Customer 建立关联（而非跨模块强耦合外键）。
 
+### Task（任务）
+- `id`
+- `title`
+- `description`（可选）
+- `type`（`todo | call | email | meeting | follow_up`）
+- `status`（`open | in_progress | completed | canceled`）
+- `priority`（`low | medium | high | urgent`）
+- `due_date`（可选）
+- `completed_at`（可选）
+- `owner_id`（可选）
+- `customer_id`（可选）
+
+### TaskRelation（任务关联）
+- `id`
+- `task_id`
+- `target_type`（如：`lead`、`opportunity`、`customer`、以及你自定义对象类型）
+- `target_id`
+- `relationship`（默认 `related`）
+
+说明：通过 `TaskRelation` 实现 Salesforce 风格的“Task 关联任意对象”。
+
 ---
 
 ## 8. CRM API 使用（PowerShell）
@@ -213,6 +234,202 @@ Invoke-RestMethod -Method Post `
   -Body $body
 ```
 
+## 8.4 Lead 单条查询
+接口：`GET /admin/crm/leads/{lead_id}`
+
+```powershell
+$leadId = "lead_xxx"
+Invoke-RestMethod -Method Get -Uri "http://localhost:9000/admin/crm/leads/$leadId"
+```
+
+## 8.5 Lead 更新
+接口：`PATCH /admin/crm/leads/{lead_id}`
+
+```powershell
+$leadId = "lead_xxx"
+$body = @{
+  status = "contacted"
+  source = "expo-2026"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Patch `
+  -Uri "http://localhost:9000/admin/crm/leads/$leadId" `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+## 8.6 Lead 删除
+接口：`DELETE /admin/crm/leads/{lead_id}`
+
+```powershell
+$leadId = "lead_xxx"
+Invoke-RestMethod -Method Delete -Uri "http://localhost:9000/admin/crm/leads/$leadId"
+```
+
+## 8.7 Opportunity 列表（支持分页/筛选）
+接口：`GET /admin/crm/opportunities`
+
+```powershell
+Invoke-RestMethod -Method Get `
+  -Uri "http://localhost:9000/admin/crm/opportunities?limit=20&offset=0&stage=prospecting"
+```
+
+## 8.8 Opportunity 创建
+接口：`POST /admin/crm/opportunities`
+
+```powershell
+$body = @{
+  name = "Acme Expansion Plan"
+  estimated_amount = 98000
+  customer_id = "cus_xxx"
+  stage = "prospecting"
+  expected_close_date = "2026-08-15"
+  lead_id = "lead_xxx"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post `
+  -Uri "http://localhost:9000/admin/crm/opportunities" `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+## 8.9 Opportunity 单条查询
+接口：`GET /admin/crm/opportunities/{opportunity_id}`
+
+```powershell
+$opportunityId = "opp_xxx"
+Invoke-RestMethod -Method Get -Uri "http://localhost:9000/admin/crm/opportunities/$opportunityId"
+```
+
+## 8.10 Opportunity 更新
+接口：`PATCH /admin/crm/opportunities/{opportunity_id}`
+
+```powershell
+$opportunityId = "opp_xxx"
+$body = @{
+  stage = "negotiation"
+  estimated_amount = 120000
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Patch `
+  -Uri "http://localhost:9000/admin/crm/opportunities/$opportunityId" `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+## 8.11 Opportunity 删除
+接口：`DELETE /admin/crm/opportunities/{opportunity_id}`
+
+```powershell
+$opportunityId = "opp_xxx"
+Invoke-RestMethod -Method Delete -Uri "http://localhost:9000/admin/crm/opportunities/$opportunityId"
+```
+
+## 8.12 Task 列表（支持分页/按对象筛选）
+接口：`GET /admin/crm/tasks`
+
+```powershell
+Invoke-RestMethod -Method Get `
+  -Uri "http://localhost:9000/admin/crm/tasks?limit=20&offset=0&status=open"
+```
+
+按任意对象筛选（例如某个 lead 关联的任务）：
+```powershell
+Invoke-RestMethod -Method Get `
+  -Uri "http://localhost:9000/admin/crm/tasks?target_type=lead&target_id=lead_xxx&limit=20&offset=0"
+```
+
+## 8.13 Task 创建（可一次绑定多个对象）
+接口：`POST /admin/crm/tasks`
+
+```powershell
+$body = @{
+  title = "Follow up quote"
+  type = "call"
+  status = "open"
+  priority = "high"
+  due_date = "2026-04-01T10:00:00Z"
+  customer_id = "cus_xxx"
+  relations = @(
+    @{ target_type = "lead"; target_id = "lead_xxx"; relationship = "primary" },
+    @{ target_type = "opportunity"; target_id = "opp_xxx"; relationship = "related" }
+  )
+} | ConvertTo-Json -Depth 10
+
+Invoke-RestMethod -Method Post `
+  -Uri "http://localhost:9000/admin/crm/tasks" `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+## 8.14 Task 单条查询
+接口：`GET /admin/crm/tasks/{task_id}`
+
+```powershell
+$taskId = "task_xxx"
+Invoke-RestMethod -Method Get -Uri "http://localhost:9000/admin/crm/tasks/$taskId"
+```
+
+## 8.15 Task 更新
+接口：`PATCH /admin/crm/tasks/{task_id}`
+
+```powershell
+$taskId = "task_xxx"
+$body = @{
+  status = "in_progress"
+  priority = "urgent"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Patch `
+  -Uri "http://localhost:9000/admin/crm/tasks/$taskId" `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+## 8.16 Task 删除
+接口：`DELETE /admin/crm/tasks/{task_id}`
+
+```powershell
+$taskId = "task_xxx"
+Invoke-RestMethod -Method Delete -Uri "http://localhost:9000/admin/crm/tasks/$taskId"
+```
+
+## 8.17 Task 关联对象管理
+查询任务关联：
+```powershell
+$taskId = "task_xxx"
+Invoke-RestMethod -Method Get -Uri "http://localhost:9000/admin/crm/tasks/$taskId/relations"
+```
+
+新增任务关联：
+```powershell
+$taskId = "task_xxx"
+$body = @{
+  relations = @(
+    @{ target_type = "lead"; target_id = "lead_xxx"; relationship = "related" },
+    @{ target_type = "customer"; target_id = "cus_xxx"; relationship = "stakeholder" }
+  )
+} | ConvertTo-Json -Depth 10
+
+Invoke-RestMethod -Method Post `
+  -Uri "http://localhost:9000/admin/crm/tasks/$taskId/relations" `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+删除任务关联（按 relation id 或按 target）：
+```powershell
+$taskId = "task_xxx"
+$body = @{
+  relation_ids = @("trl_xxx")
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Delete `
+  -Uri "http://localhost:9000/admin/crm/tasks/$taskId/relations" `
+  -ContentType "application/json" `
+  -Body $body
+```
+
 ---
 
 ## 9. 数据库 ER 图（核心逻辑）
@@ -227,10 +444,12 @@ erDiagram
     LEAD ||--o{ OPPORTUNITY : converts_to
     CUSTOMER ||--o{ LEAD : linked_via_module_link
     CUSTOMER ||--o{ OPPORTUNITY : linked_via_module_link
+    CUSTOMER ||--o{ TASK : linked_via_module_link
 
     PRODUCT ||--o{ PRODUCT_VARIANT : has
     ORDER ||--|{ ORDER_ITEM : contains
     PRODUCT_VARIANT ||--o{ ORDER_ITEM : sold_as
+    TASK ||--o{ TASK_RELATION : has
 
     LEAD {
       string id PK
@@ -295,6 +514,24 @@ erDiagram
       string id PK
       string customer_id FK
       string currency_code
+    }
+
+    TASK {
+      string id PK
+      string title
+      string type
+      string status
+      string priority
+      datetime due_date
+      string customer_id
+    }
+
+    TASK_RELATION {
+      string id PK
+      string task_id FK
+      string target_type
+      string target_id
+      string relationship
     }
 ```
 
