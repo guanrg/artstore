@@ -1,5 +1,9 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { useEffect, useMemo, useState, type CSSProperties } from "react"
+import { useEffect, useMemo, useState, type CSSProperties, type FocusEvent, type KeyboardEvent } from "react"
+import AdminLanguageDock from "../../components/admin-language-dock"
+import { useAdminLanguage } from "../../lib/admin-language"
+import { adminCardStyle, adminTheme } from "../../lib/admin-theme"
+import ReportHeader from "../reports/components/report-header"
 
 type Lead = {
   id: string
@@ -78,74 +82,201 @@ function badgeStyle(color: string): CSSProperties {
     fontSize: 11,
     fontWeight: 700,
     color,
-    background: `${color}18`,
-    border: `1px solid ${color}40`,
+    background: `${color}1A`,
+    border: `1px solid ${color}55`,
     borderRadius: 999,
-    padding: "2px 8px",
+    padding: "4px 9px",
   }
 }
 
 const shellStyle: CSSProperties = {
   padding: 16,
   display: "grid",
-  gap: 12,
-  background: "#f3f6fb",
+  gap: 16,
+  background: `radial-gradient(circle at top left, ${adminTheme.color.highlight} 0%, transparent 22%), linear-gradient(180deg, ${adminTheme.color.canvas} 0%, ${adminTheme.color.canvasAlt} 100%)`,
 }
 
 const topCardStyle: CSSProperties = {
-  border: "1px solid #d5deea",
-  background: "linear-gradient(180deg, #f8fbff 0%, #eff4fb 100%)",
-  borderRadius: 12,
+  ...adminCardStyle,
+  background: `linear-gradient(135deg, ${adminTheme.color.surfaceMuted} 0%, ${adminTheme.color.primarySoft} 58%, ${adminTheme.color.surface} 100%)`,
+  borderRadius: 18,
   padding: 14,
 }
 
 const layoutStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "380px 1fr",
-  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: 14,
   alignItems: "start",
 }
 
 const panelStyle: CSSProperties = {
-  border: "1px solid #d5deea",
-  background: "#ffffff",
-  borderRadius: 12,
-  padding: 12,
+  ...adminCardStyle,
+  borderRadius: 16,
+  padding: 14,
 }
 
 const listItemBase: CSSProperties = {
-  border: "1px solid #dbe3ef",
-  borderRadius: 10,
+  border: `1px solid ${adminTheme.color.border}`,
+  borderRadius: 12,
   padding: 10,
   cursor: "pointer",
-  background: "#fff",
+  background: adminTheme.color.surface,
+  transition: "transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease",
 }
 
 const inputStyle: CSSProperties = {
-  border: "1px solid #cdd8e8",
-  borderRadius: 8,
+  border: `1px solid ${adminTheme.color.border}`,
+  borderRadius: 10,
   padding: "7px 10px",
   fontSize: 13,
+  background: adminTheme.color.surface,
+  color: adminTheme.color.text,
+  boxShadow: adminTheme.shadow.soft,
   width: "100%",
 }
 
 const buttonStyle: CSSProperties = {
-  border: "1px solid #c4d4ef",
-  borderRadius: 8,
+  border: `1px solid ${adminTheme.color.border}`,
+  borderRadius: 999,
   padding: "6px 10px",
   fontSize: 12,
   cursor: "pointer",
-  background: "#f8fbff",
+  background: adminTheme.color.surface,
+  color: adminTheme.color.text,
+  boxShadow: adminTheme.shadow.soft,
 }
 
 const primaryButtonStyle: CSSProperties = {
   ...buttonStyle,
-  border: "1px solid #1f5fbf",
-  background: "#1f5fbf",
-  color: "#fff",
+  border: `1px solid ${adminTheme.color.primary}`,
+  background: adminTheme.color.primary,
+  color: adminTheme.color.primaryText,
+}
+
+const sectionDividerStyle: CSSProperties = {
+  borderTop: `1px solid ${adminTheme.color.border}`,
+  paddingTop: 12,
+}
+
+const helperTextStyle: CSSProperties = {
+  color: adminTheme.color.textMuted,
+  fontSize: 12,
+}
+
+const selectedListItemStyle: CSSProperties = {
+  borderColor: adminTheme.color.primary,
+  background: `linear-gradient(180deg, ${adminTheme.color.primarySoft} 0%, ${adminTheme.color.surface} 100%)`,
+  boxShadow: adminTheme.shadow.focus,
+}
+
+const sectionHeadingStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  marginBottom: 10,
+}
+
+const sectionTitleTextStyle: CSSProperties = {
+  fontSize: 14,
+  fontWeight: 800,
+  color: adminTheme.color.text,
+}
+
+const formGridThreeStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
+}
+
+const formGridFourStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  gap: 10,
+}
+
+const listWrapStyle: CSSProperties = {
+  marginTop: 12,
+  display: "grid",
+  gap: 8,
+  maxHeight: 620,
+  overflow: "auto",
+  paddingRight: 2,
+}
+
+const actionRowStyle: CSSProperties = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  alignItems: "center",
+}
+
+const microCardStyle: CSSProperties = {
+  ...listItemBase,
+  padding: "8px 10px",
+}
+
+function interactiveListItemHandlers(
+  onSelect: () => void,
+  selected: boolean
+) {
+  return {
+    role: "button" as const,
+    tabIndex: 0,
+    onClick: onSelect,
+    onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault()
+        onSelect()
+      }
+    },
+    onFocus: (event: FocusEvent<HTMLDivElement>) => {
+      event.currentTarget.style.transform = "translateY(-1px)"
+      event.currentTarget.style.boxShadow = adminTheme.shadow.focus
+      event.currentTarget.style.borderColor = adminTheme.color.primary
+    },
+    onBlur: (event: FocusEvent<HTMLDivElement>) => {
+      event.currentTarget.style.transform = ""
+      event.currentTarget.style.boxShadow = selected ? adminTheme.shadow.focus : "none"
+      event.currentTarget.style.borderColor = selected ? adminTheme.color.primary : adminTheme.color.border
+    },
+  }
+}
+
+function ObjectMark(props: { label: string; tone?: "primary" | "success" | "accent" | "info" }) {
+  const tone = props.tone ?? "primary"
+  const map = {
+    primary: { bg: adminTheme.color.primarySoft, fg: adminTheme.color.primary },
+    success: { bg: adminTheme.color.successSoft, fg: adminTheme.color.success },
+    accent: { bg: adminTheme.color.accentSoft, fg: adminTheme.color.accent },
+    info: { bg: adminTheme.color.infoSoft, fg: adminTheme.color.info },
+  }[tone]
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: 28,
+        height: 28,
+        padding: "0 8px",
+        borderRadius: 999,
+        background: map.bg,
+        color: map.fg,
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: "0.04em",
+      }}
+    >
+      {props.label}
+    </span>
+  )
 }
 
 const CrmPage = () => {
+  const { t } = useAdminLanguage()
   const [tab, setTab] = useState<CrmTab>("lead")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -227,6 +358,88 @@ const CrmPage = () => {
     () => tasks.find((v) => v.id === selectedTaskId) ?? null,
     [tasks, selectedTaskId]
   )
+
+  const leadStatusLabel = (status: Lead["status"]) =>
+    t(
+      {
+        new: "新线索",
+        contacted: "已联系",
+        qualified: "已确认",
+        lost: "已丢失",
+      }[status],
+      {
+        new: "new",
+        contacted: "contacted",
+        qualified: "qualified",
+        lost: "lost",
+      }[status]
+    )
+
+  const opportunityStageLabel = (stage: Opportunity["stage"]) =>
+    t(
+      {
+        prospecting: "挖掘中",
+        negotiation: "谈判中",
+        closed_won: "赢单",
+        closed_lost: "输单",
+      }[stage],
+      {
+        prospecting: "prospecting",
+        negotiation: "negotiation",
+        closed_won: "closed_won",
+        closed_lost: "closed_lost",
+      }[stage]
+    )
+
+  const taskStatusLabel = (status: Task["status"]) =>
+    t(
+      {
+        open: "待处理",
+        in_progress: "进行中",
+        completed: "已完成",
+        canceled: "已取消",
+      }[status],
+      {
+        open: "open",
+        in_progress: "in_progress",
+        completed: "completed",
+        canceled: "canceled",
+      }[status]
+    )
+
+  const taskPriorityLabel = (priority: Task["priority"]) =>
+    t(
+      {
+        low: "低",
+        medium: "中",
+        high: "高",
+        urgent: "紧急",
+      }[priority],
+      {
+        low: "low",
+        medium: "medium",
+        high: "high",
+        urgent: "urgent",
+      }[priority]
+    )
+
+  const taskTypeLabel = (type: Task["type"]) =>
+    t(
+      {
+        todo: "待办",
+        call: "电话",
+        email: "邮件",
+        meeting: "会议",
+        follow_up: "跟进",
+      }[type],
+      {
+        todo: "todo",
+        call: "call",
+        email: "email",
+        meeting: "meeting",
+        follow_up: "follow_up",
+      }[type]
+    )
 
   const filteredLeads = useMemo(() => {
     const q = leadSearch.trim().toLowerCase()
@@ -403,7 +616,7 @@ const CrmPage = () => {
           await loadTasks()
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Load failed")
+        setError(e instanceof Error ? e.message : t("加载失败", "Load failed"))
       } finally {
         setLoading(false)
       }
@@ -493,7 +706,7 @@ const CrmPage = () => {
       setLoading(true)
       setError("")
       if (!leadForm.name || !leadForm.email || !leadForm.company || !leadForm.source) {
-        throw new Error("Lead required fields: name/email/company/source")
+        throw new Error(t("线索必填项：姓名 / 邮箱 / 公司 / 来源", "Lead required fields: name/email/company/source"))
       }
 
       if (selectedLeadId) {
@@ -501,13 +714,13 @@ const CrmPage = () => {
           ...leadForm,
           customer_id: leadForm.customer_id || null,
         })
-        setMessage("Lead updated")
+        setMessage(t("线索已更新", "Lead updated"))
       } else {
         await api(`/admin/crm/leads`, "POST", {
           ...leadForm,
           customer_id: leadForm.customer_id || undefined,
         })
-        setMessage("Lead created")
+        setMessage(t("线索已创建", "Lead created"))
       }
 
       await loadLeads()
@@ -515,24 +728,24 @@ const CrmPage = () => {
         setLeadSearch("")
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed")
+      setError(e instanceof Error ? e.message : t("保存失败", "Save failed"))
     } finally {
       setLoading(false)
     }
   }
 
   const deleteLead = async (id: string) => {
-    if (!window.confirm(`Delete lead ${id}?`)) return
+    if (!window.confirm(t(`确认删除线索 ${id}？`, `Delete lead ${id}?`))) return
     try {
       setLoading(true)
       await api(`/admin/crm/leads/${id}`, "DELETE")
-      setMessage("Lead deleted")
+      setMessage(t("线索已删除", "Lead deleted"))
       if (selectedLeadId === id) {
         setSelectedLeadId("")
       }
       await loadLeads()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed")
+      setError(e instanceof Error ? e.message : t("删除失败", "Delete failed"))
     } finally {
       setLoading(false)
     }
@@ -540,7 +753,7 @@ const CrmPage = () => {
 
   const convertLead = async () => {
     if (!selectedLeadId) {
-      setError("Select a lead first")
+      setError(t("请先选择一条线索", "Select a lead first"))
       return
     }
 
@@ -553,7 +766,7 @@ const CrmPage = () => {
         stage: convertForm.stage,
         expected_close_date: convertForm.expected_close_date || undefined,
       })
-      setMessage("Lead converted to opportunity")
+      setMessage(t("线索已转换为商机", "Lead converted to opportunity"))
       await Promise.all([loadLeads(), loadOpportunities()])
       setTab("opportunity")
       setSelectedLeadId("")
@@ -565,7 +778,7 @@ const CrmPage = () => {
         expected_close_date: "",
       })
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Convert failed")
+      setError(e instanceof Error ? e.message : t("转换失败", "Convert failed"))
     } finally {
       setLoading(false)
     }
@@ -575,7 +788,9 @@ const CrmPage = () => {
     try {
       setLoading(true)
       if (!opportunityForm.name || !opportunityForm.customer_id) {
-        throw new Error("Opportunity required fields: name/customer_id")
+        throw new Error(
+          t("商机必填项：名称 / 客户 ID", "Opportunity required fields: name/customer_id")
+        )
       }
 
       if (selectedOpportunityId) {
@@ -584,36 +799,36 @@ const CrmPage = () => {
           expected_close_date: opportunityForm.expected_close_date || null,
           lead_id: opportunityForm.lead_id || null,
         })
-        setMessage("Opportunity updated")
+        setMessage(t("商机已更新", "Opportunity updated"))
       } else {
         await api(`/admin/crm/opportunities`, "POST", {
           ...opportunityForm,
           expected_close_date: opportunityForm.expected_close_date || undefined,
           lead_id: opportunityForm.lead_id || undefined,
         })
-        setMessage("Opportunity created")
+        setMessage(t("商机已创建", "Opportunity created"))
       }
 
       await loadOpportunities()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed")
+      setError(e instanceof Error ? e.message : t("保存失败", "Save failed"))
     } finally {
       setLoading(false)
     }
   }
 
   const deleteOpportunity = async (id: string) => {
-    if (!window.confirm(`Delete opportunity ${id}?`)) return
+    if (!window.confirm(t(`确认删除商机 ${id}？`, `Delete opportunity ${id}?`))) return
     try {
       setLoading(true)
       await api(`/admin/crm/opportunities/${id}`, "DELETE")
-      setMessage("Opportunity deleted")
+      setMessage(t("商机已删除", "Opportunity deleted"))
       if (selectedOpportunityId === id) {
         setSelectedOpportunityId("")
       }
       await loadOpportunities()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed")
+      setError(e instanceof Error ? e.message : t("删除失败", "Delete failed"))
     } finally {
       setLoading(false)
     }
@@ -623,7 +838,7 @@ const CrmPage = () => {
     try {
       setLoading(true)
       if (!taskForm.title) {
-        throw new Error("Task required field: title")
+        throw new Error(t("任务必填项：标题", "Task required field: title"))
       }
 
       if (selectedTaskId) {
@@ -635,7 +850,7 @@ const CrmPage = () => {
           owner_id: taskForm.owner_id || null,
           customer_id: taskForm.customer_id || null,
         })
-        setMessage("Task updated")
+        setMessage(t("任务已更新", "Task updated"))
       } else {
         await api(`/admin/crm/tasks`, "POST", {
           ...taskForm,
@@ -645,29 +860,29 @@ const CrmPage = () => {
           owner_id: taskForm.owner_id || undefined,
           customer_id: taskForm.customer_id || undefined,
         })
-        setMessage("Task created")
+        setMessage(t("任务已创建", "Task created"))
       }
 
       await loadTasks()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed")
+      setError(e instanceof Error ? e.message : t("保存失败", "Save failed"))
     } finally {
       setLoading(false)
     }
   }
 
   const deleteTask = async (id: string) => {
-    if (!window.confirm(`Delete task ${id}?`)) return
+    if (!window.confirm(t(`确认删除任务 ${id}？`, `Delete task ${id}?`))) return
     try {
       setLoading(true)
       await api(`/admin/crm/tasks/${id}`, "DELETE")
-      setMessage("Task deleted")
+      setMessage(t("任务已删除", "Task deleted"))
       if (selectedTaskId === id) {
         setSelectedTaskId("")
       }
       await loadTasks()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed")
+      setError(e instanceof Error ? e.message : t("删除失败", "Delete failed"))
     } finally {
       setLoading(false)
     }
@@ -675,11 +890,11 @@ const CrmPage = () => {
 
   const addTaskRelation = async () => {
     if (!selectedTaskId) {
-      setError("Select a task first")
+      setError(t("请先选择一个任务", "Select a task first"))
       return
     }
     if (!taskRelationForm.target_type || !taskRelationForm.target_id) {
-      setError("Relation required: target_type + target_id")
+      setError(t("关联必填：关联类型 + 关联目标 ID", "Relation required: target type + target ID"))
       return
     }
 
@@ -694,10 +909,10 @@ const CrmPage = () => {
           },
         ],
       })
-      setMessage("Task relation added")
+      setMessage(t("任务关联已添加", "Task relation added"))
       await loadTaskRelations(selectedTaskId)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Add relation failed")
+      setError(e instanceof Error ? e.message : t("添加关联失败", "Add relation failed"))
     } finally {
       setLoading(false)
     }
@@ -710,10 +925,10 @@ const CrmPage = () => {
       await api(`/admin/crm/tasks/${selectedTaskId}/relations`, "DELETE", {
         relation_ids: [relationId],
       })
-      setMessage("Task relation removed")
+      setMessage(t("任务关联已移除", "Task relation removed"))
       await loadTaskRelations(selectedTaskId)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete relation failed")
+      setError(e instanceof Error ? e.message : t("删除关联失败", "Delete relation failed"))
     } finally {
       setLoading(false)
     }
@@ -722,60 +937,65 @@ const CrmPage = () => {
   return (
     <div style={shellStyle}>
       <div style={topCardStyle}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 20, color: "#16325c" }}>CRM Workspace</h2>
-            <p style={{ margin: "6px 0 0", fontSize: 13, color: "#3f4f65" }}>
-              Salesforce-style object workspace for Leads, Opportunities and Tasks.
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <span style={badgeStyle("#0f4c9c")}>Leads {leads.length}</span>
-            <span style={badgeStyle("#1f7a37")}>Opps {opportunities.length}</span>
-            <span style={badgeStyle("#7a4f01")}>Tasks {tasks.length}</span>
-          </div>
-        </div>
+        <ReportHeader
+          title={t("CRM 工作台", "CRM Workspace")}
+          crumbs={[
+            { label: t("CRM", "CRM") },
+          ]}
+          aside={
+            <div style={{ display: "grid", gap: 8, justifyItems: "end" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <span style={badgeStyle(adminTheme.color.primary)}>{t("线索", "Leads")} {leads.length}</span>
+                <span style={badgeStyle(adminTheme.color.success)}>{t("商机", "Opps")} {opportunities.length}</span>
+                <span style={badgeStyle(adminTheme.color.accent)}>{t("任务", "Tasks")} {tasks.length}</span>
+              </div>
+            </div>
+          }
+        />
         <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
           <button
             type="button"
             style={tab === "lead" ? primaryButtonStyle : buttonStyle}
             onClick={() => setTab("lead")}
           >
-            Leads
+            {t("线索", "Leads")}
           </button>
           <button
             type="button"
             style={tab === "opportunity" ? primaryButtonStyle : buttonStyle}
             onClick={() => setTab("opportunity")}
           >
-            Opportunities
+            {t("商机", "Opportunities")}
           </button>
           <button
             type="button"
             style={tab === "task" ? primaryButtonStyle : buttonStyle}
             onClick={() => setTab("task")}
           >
-            Tasks
+            {t("任务", "Tasks")}
           </button>
         </div>
-        {loading ? <p style={{ margin: "10px 0 0", color: "#334155" }}>Loading...</p> : null}
-        {error ? <p style={{ margin: "10px 0 0", color: "#b91c1c" }}>{error}</p> : null}
-        {notice ? <p style={{ margin: "10px 0 0", color: "#166534" }}>{notice}</p> : null}
+        {loading ? <p style={{ margin: "10px 0 0", color: adminTheme.color.textMuted }}>{t("加载中...", "Loading...")}</p> : null}
+        {error ? <p style={{ margin: "10px 0 0", color: adminTheme.color.danger }}>{error}</p> : null}
+        {notice ? <p style={{ margin: "10px 0 0", color: adminTheme.color.success }}>{notice}</p> : null}
       </div>
 
       <div style={layoutStyle}>
         <div style={panelStyle}>
           {tab === "lead" ? (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <strong>Lead List</strong>
+              <div style={sectionHeadingStyle}>
+                <div style={{ display: "grid", gap: 2 }}>
+                  <strong style={sectionTitleTextStyle}>{t("线索列表", "Lead List")}</strong>
+                  <span style={helperTextStyle}>{t("筛选并选择要编辑的线索对象。", "Filter and choose the lead you want to edit.")}</span>
+                </div>
                 <button type="button" style={buttonStyle} onClick={() => setSelectedLeadId("")}>
-                  New
+                  {t("新建", "New")}
                 </button>
               </div>
               <input
                 style={inputStyle}
-                placeholder="Search lead"
+                placeholder={t("搜索线索", "Search lead")}
                 value={leadSearch}
                 onChange={(e) => setLeadSearch(e.target.value)}
               />
@@ -784,50 +1004,60 @@ const CrmPage = () => {
                 value={leadStatusFilter}
                 onChange={(e) => setLeadStatusFilter(e.target.value as LeadStatusFilter)}
               >
-                <option value="">All statuses</option>
-                <option value="new">new</option>
-                <option value="contacted">contacted</option>
-                <option value="qualified">qualified</option>
-                <option value="lost">lost</option>
+                <option value="">{t("全部状态", "All statuses")}</option>
+                <option value="new">{leadStatusLabel("new")}</option>
+                <option value="contacted">{leadStatusLabel("contacted")}</option>
+                <option value="qualified">{leadStatusLabel("qualified")}</option>
+                <option value="lost">{leadStatusLabel("lost")}</option>
               </select>
-              <div style={{ marginTop: 10, display: "grid", gap: 8, maxHeight: 620, overflow: "auto" }}>
+              <div style={listWrapStyle}>
                 {filteredLeads.map((lead) => (
                   <div
                     key={lead.id}
                     style={{
                       ...listItemBase,
-                      borderColor: selectedLeadId === lead.id ? "#1f5fbf" : "#dbe3ef",
-                      background: selectedLeadId === lead.id ? "#eff5ff" : "#fff",
+                      ...(selectedLeadId === lead.id ? selectedListItemStyle : null),
                     }}
-                    onClick={() => setSelectedLeadId(lead.id)}
+                    {...interactiveListItemHandlers(() => setSelectedLeadId(lead.id), selectedLeadId === lead.id)}
                   >
-                    <div style={{ fontWeight: 700 }}>{lead.name}</div>
-                    <div style={{ fontSize: 12, color: "#4b5563" }}>{lead.email}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                      <div style={{ fontWeight: 700, color: adminTheme.color.text }}>{lead.name}</div>
+                      <ObjectMark label="LD" tone="primary" />
+                    </div>
+                    <div style={{ fontSize: 12, color: adminTheme.color.textMuted }}>{lead.email}</div>
                     <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
-                      <span style={badgeStyle("#4b5563")}>{lead.status}</span>
-                      <span style={badgeStyle("#1f5fbf")}>{lead.company}</span>
+                      <span style={badgeStyle(adminTheme.color.info)}>{leadStatusLabel(lead.status)}</span>
+                      <span style={badgeStyle(adminTheme.color.primary)}>{lead.company}</span>
                     </div>
                   </div>
                 ))}
+                {!filteredLeads.length ? (
+                  <div style={{ ...microCardStyle, textAlign: "center", color: adminTheme.color.textMuted }}>
+                    {t("当前筛选下没有线索。", "No leads match the current filters.")}
+                  </div>
+                ) : null}
               </div>
             </>
           ) : null}
 
           {tab === "opportunity" ? (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <strong>Opportunity List</strong>
+              <div style={sectionHeadingStyle}>
+                <div style={{ display: "grid", gap: 2 }}>
+                  <strong style={sectionTitleTextStyle}>{t("商机列表", "Opportunity List")}</strong>
+                  <span style={helperTextStyle}>{t("聚焦当前推进中的商机和阶段变化。", "Focus on active opportunities and stage movement.")}</span>
+                </div>
                 <button
                   type="button"
                   style={buttonStyle}
                   onClick={() => setSelectedOpportunityId("")}
                 >
-                  New
+                  {t("新建", "New")}
                 </button>
               </div>
               <input
                 style={inputStyle}
-                placeholder="Search opportunity"
+                placeholder={t("搜索商机", "Search opportunity")}
                 value={opportunitySearch}
                 onChange={(e) => setOpportunitySearch(e.target.value)}
               />
@@ -838,46 +1068,56 @@ const CrmPage = () => {
                   setOpportunityStageFilter(e.target.value as OpportunityStageFilter)
                 }
               >
-                <option value="">All stages</option>
-                <option value="prospecting">prospecting</option>
-                <option value="negotiation">negotiation</option>
-                <option value="closed_won">closed_won</option>
-                <option value="closed_lost">closed_lost</option>
+                <option value="">{t("全部阶段", "All stages")}</option>
+                <option value="prospecting">{opportunityStageLabel("prospecting")}</option>
+                <option value="negotiation">{opportunityStageLabel("negotiation")}</option>
+                <option value="closed_won">{opportunityStageLabel("closed_won")}</option>
+                <option value="closed_lost">{opportunityStageLabel("closed_lost")}</option>
               </select>
-              <div style={{ marginTop: 10, display: "grid", gap: 8, maxHeight: 620, overflow: "auto" }}>
+              <div style={listWrapStyle}>
                 {filteredOpportunities.map((op) => (
                   <div
                     key={op.id}
                     style={{
                       ...listItemBase,
-                      borderColor: selectedOpportunityId === op.id ? "#1f5fbf" : "#dbe3ef",
-                      background: selectedOpportunityId === op.id ? "#eff5ff" : "#fff",
+                      ...(selectedOpportunityId === op.id ? selectedListItemStyle : null),
                     }}
-                    onClick={() => setSelectedOpportunityId(op.id)}
+                    {...interactiveListItemHandlers(() => setSelectedOpportunityId(op.id), selectedOpportunityId === op.id)}
                   >
-                    <div style={{ fontWeight: 700 }}>{op.name}</div>
-                    <div style={{ fontSize: 12, color: "#4b5563" }}>{op.customer_id}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                      <div style={{ fontWeight: 700, color: adminTheme.color.text }}>{op.name}</div>
+                      <ObjectMark label="OP" tone="success" />
+                    </div>
+                    <div style={{ fontSize: 12, color: adminTheme.color.textMuted }}>{op.customer_id}</div>
                     <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
-                      <span style={badgeStyle("#4b5563")}>{op.stage}</span>
-                      <span style={badgeStyle("#1f7a37")}>{String(op.estimated_amount)}</span>
+                      <span style={badgeStyle(adminTheme.color.info)}>{opportunityStageLabel(op.stage)}</span>
+                      <span style={badgeStyle(adminTheme.color.success)}>{String(op.estimated_amount)}</span>
                     </div>
                   </div>
                 ))}
+                {!filteredOpportunities.length ? (
+                  <div style={{ ...microCardStyle, textAlign: "center", color: adminTheme.color.textMuted }}>
+                    {t("当前筛选下没有商机。", "No opportunities match the current filters.")}
+                  </div>
+                ) : null}
               </div>
             </>
           ) : null}
 
           {tab === "task" ? (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <strong>Task List</strong>
+              <div style={sectionHeadingStyle}>
+                <div style={{ display: "grid", gap: 2 }}>
+                  <strong style={sectionTitleTextStyle}>{t("任务列表", "Task List")}</strong>
+                  <span style={helperTextStyle}>{t("查看任务状态、优先级和关联对象。", "Review task status, priority, and linked records.")}</span>
+                </div>
                 <button type="button" style={buttonStyle} onClick={() => setSelectedTaskId("")}>
-                  New
+                  {t("新建", "New")}
                 </button>
               </div>
               <input
                 style={inputStyle}
-                placeholder="Search task"
+                placeholder={t("搜索任务", "Search task")}
                 value={taskSearch}
                 onChange={(e) => setTaskSearch(e.target.value)}
               />
@@ -886,32 +1126,39 @@ const CrmPage = () => {
                 value={taskStatusFilter}
                 onChange={(e) => setTaskStatusFilter(e.target.value as TaskStatusFilter)}
               >
-                <option value="">All statuses</option>
-                <option value="open">open</option>
-                <option value="in_progress">in_progress</option>
-                <option value="completed">completed</option>
-                <option value="canceled">canceled</option>
+                <option value="">{t("全部状态", "All statuses")}</option>
+                <option value="open">{taskStatusLabel("open")}</option>
+                <option value="in_progress">{taskStatusLabel("in_progress")}</option>
+                <option value="completed">{taskStatusLabel("completed")}</option>
+                <option value="canceled">{taskStatusLabel("canceled")}</option>
               </select>
-              <div style={{ marginTop: 10, display: "grid", gap: 8, maxHeight: 620, overflow: "auto" }}>
+              <div style={listWrapStyle}>
                 {filteredTasks.map((task) => (
                   <div
                     key={task.id}
                     style={{
                       ...listItemBase,
-                      borderColor: selectedTaskId === task.id ? "#1f5fbf" : "#dbe3ef",
-                      background: selectedTaskId === task.id ? "#eff5ff" : "#fff",
+                      ...(selectedTaskId === task.id ? selectedListItemStyle : null),
                     }}
-                    onClick={() => setSelectedTaskId(task.id)}
+                    {...interactiveListItemHandlers(() => setSelectedTaskId(task.id), selectedTaskId === task.id)}
                   >
-                    <div style={{ fontWeight: 700 }}>{task.title}</div>
-                    <div style={{ fontSize: 12, color: "#4b5563" }}>{task.description || "-"}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                      <div style={{ fontWeight: 700, color: adminTheme.color.text }}>{task.title}</div>
+                      <ObjectMark label="TS" tone="accent" />
+                    </div>
+                    <div style={{ fontSize: 12, color: adminTheme.color.textMuted }}>{task.description || "-"}</div>
                     <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
-                      <span style={badgeStyle("#4b5563")}>{task.status}</span>
-                      <span style={badgeStyle("#7a4f01")}>{task.priority}</span>
-                      <span style={badgeStyle("#1f5fbf")}>{task.type}</span>
+                      <span style={badgeStyle(adminTheme.color.info)}>{taskStatusLabel(task.status)}</span>
+                      <span style={badgeStyle(adminTheme.color.accent)}>{taskPriorityLabel(task.priority)}</span>
+                      <span style={badgeStyle(adminTheme.color.primary)}>{taskTypeLabel(task.type)}</span>
                     </div>
                   </div>
                 ))}
+                {!filteredTasks.length ? (
+                  <div style={{ ...microCardStyle, textAlign: "center", color: adminTheme.color.textMuted }}>
+                    {t("当前筛选下没有任务。", "No tasks match the current filters.")}
+                  </div>
+                ) : null}
               </div>
             </>
           ) : null}
@@ -921,33 +1168,35 @@ const CrmPage = () => {
           {tab === "lead" ? (
             <>
               <div>
-                <h3 style={{ margin: 0 }}>Lead Detail</h3>
-                <p style={{ margin: "6px 0 0", color: "#475569", fontSize: 12 }}>
-                  {selectedLead ? `Editing ${selectedLead.id}` : "Creating new lead"}
+                <h3 style={{ margin: 0, color: adminTheme.color.text }}>{t("线索详情", "Lead Detail")}</h3>
+                <p style={{ margin: "6px 0 0", ...helperTextStyle }}>
+                  {selectedLead
+                    ? t(`正在编辑 ${selectedLead.id}`, `Editing ${selectedLead.id}`)
+                    : t("正在创建新线索", "Creating new lead")}
                 </p>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+              <div style={formGridThreeStyle}>
                 <input
                   style={inputStyle}
-                  placeholder="Name"
+                  placeholder={t("姓名", "Name")}
                   value={leadForm.name}
                   onChange={(e) => setLeadForm((v) => ({ ...v, name: e.target.value }))}
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Email"
+                  placeholder={t("邮箱", "Email")}
                   value={leadForm.email}
                   onChange={(e) => setLeadForm((v) => ({ ...v, email: e.target.value }))}
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Company"
+                  placeholder={t("公司", "Company")}
                   value={leadForm.company}
                   onChange={(e) => setLeadForm((v) => ({ ...v, company: e.target.value }))}
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Source"
+                  placeholder={t("来源", "Source")}
                   value={leadForm.source}
                   onChange={(e) => setLeadForm((v) => ({ ...v, source: e.target.value }))}
                 />
@@ -958,21 +1207,21 @@ const CrmPage = () => {
                     setLeadForm((v) => ({ ...v, status: e.target.value as Lead["status"] }))
                   }
                 >
-                  <option value="new">new</option>
-                  <option value="contacted">contacted</option>
-                  <option value="qualified">qualified</option>
-                  <option value="lost">lost</option>
+                  <option value="new">{leadStatusLabel("new")}</option>
+                  <option value="contacted">{leadStatusLabel("contacted")}</option>
+                  <option value="qualified">{leadStatusLabel("qualified")}</option>
+                  <option value="lost">{leadStatusLabel("lost")}</option>
                 </select>
                 <input
                   style={inputStyle}
-                  placeholder="Customer ID"
+                  placeholder={t("客户 ID", "Customer ID")}
                   value={leadForm.customer_id}
                   onChange={(e) => setLeadForm((v) => ({ ...v, customer_id: e.target.value }))}
                 />
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={actionRowStyle}>
                 <button type="button" style={primaryButtonStyle} onClick={() => void saveLead()}>
-                  {selectedLead ? "Save Lead" : "Create Lead"}
+                  {selectedLead ? t("保存线索", "Save Lead") : t("创建线索", "Create Lead")}
                 </button>
                 {selectedLead ? (
                   <button
@@ -980,23 +1229,23 @@ const CrmPage = () => {
                     style={buttonStyle}
                     onClick={() => void deleteLead(selectedLead.id)}
                   >
-                    Delete
+                    {t("删除", "Delete")}
                   </button>
                 ) : null}
               </div>
 
-              <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12, display: "grid", gap: 8 }}>
-                <h4 style={{ margin: 0 }}>Convert Lead</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+              <div style={{ ...sectionDividerStyle, display: "grid", gap: 8 }}>
+                <h4 style={{ margin: 0, color: adminTheme.color.text }}>{t("转换线索", "Convert Lead")}</h4>
+                <div style={formGridFourStyle}>
                   <input
                     style={inputStyle}
-                    placeholder="Opportunity Name"
+                    placeholder={t("商机名称", "Opportunity Name")}
                     value={convertForm.name}
                     onChange={(e) => setConvertForm((v) => ({ ...v, name: e.target.value }))}
                   />
                   <input
                     style={inputStyle}
-                    placeholder="Estimated Amount"
+                    placeholder={t("预计金额", "Estimated Amount")}
                     value={convertForm.estimated_amount}
                     onChange={(e) =>
                       setConvertForm((v) => ({ ...v, estimated_amount: e.target.value }))
@@ -1004,7 +1253,7 @@ const CrmPage = () => {
                   />
                   <input
                     style={inputStyle}
-                    placeholder="Customer ID"
+                    placeholder={t("客户 ID", "Customer ID")}
                     value={convertForm.customer_id}
                     onChange={(e) =>
                       setConvertForm((v) => ({ ...v, customer_id: e.target.value }))
@@ -1017,40 +1266,40 @@ const CrmPage = () => {
                       setConvertForm((v) => ({ ...v, stage: e.target.value as Opportunity["stage"] }))
                     }
                   >
-                    <option value="prospecting">prospecting</option>
-                    <option value="negotiation">negotiation</option>
-                    <option value="closed_won">closed_won</option>
-                    <option value="closed_lost">closed_lost</option>
+                    <option value="prospecting">{opportunityStageLabel("prospecting")}</option>
+                    <option value="negotiation">{opportunityStageLabel("negotiation")}</option>
+                    <option value="closed_won">{opportunityStageLabel("closed_won")}</option>
+                    <option value="closed_lost">{opportunityStageLabel("closed_lost")}</option>
                   </select>
                 </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={actionRowStyle}>
                   <input
                     style={{ ...inputStyle, maxWidth: 280 }}
-                    placeholder="Expected Close Date"
+                    placeholder={t("预计成交日期", "Expected Close Date")}
                     value={convertForm.expected_close_date}
                     onChange={(e) =>
                       setConvertForm((v) => ({ ...v, expected_close_date: e.target.value }))
                     }
                   />
                   <button type="button" style={primaryButtonStyle} onClick={() => void convertLead()}>
-                    Convert to Opportunity
+                    {t("转换为商机", "Convert to Opportunity")}
                   </button>
                 </div>
               </div>
 
-              <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
-                <h4 style={{ margin: 0 }}>Related Activities (Tasks)</h4>
+              <div style={sectionDividerStyle}>
+                <h4 style={{ margin: 0, color: adminTheme.color.text }}>{t("关联活动（任务）", "Related Activities (Tasks)")}</h4>
                 <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
                   {relatedTasks.map((task) => (
-                    <div key={task.id} style={{ ...listItemBase, padding: "8px 10px" }}>
+                    <div key={task.id} style={microCardStyle}>
                       <div style={{ fontWeight: 700, fontSize: 13 }}>{task.title}</div>
-                      <div style={{ fontSize: 12, color: "#475569" }}>
-                        {task.status} · {task.priority} · {task.type}
+                      <div style={helperTextStyle}>
+                        {taskStatusLabel(task.status)} · {taskPriorityLabel(task.priority)} · {taskTypeLabel(task.type)}
                       </div>
                     </div>
                   ))}
                   {!relatedTasks.length ? (
-                    <div style={{ fontSize: 12, color: "#64748b" }}>No tasks linked.</div>
+                    <div style={helperTextStyle}>{t("暂无关联任务。", "No tasks linked.")}</div>
                   ) : null}
                 </div>
               </div>
@@ -1060,21 +1309,23 @@ const CrmPage = () => {
           {tab === "opportunity" ? (
             <>
               <div>
-                <h3 style={{ margin: 0 }}>Opportunity Detail</h3>
-                <p style={{ margin: "6px 0 0", color: "#475569", fontSize: 12 }}>
-                  {selectedOpportunity ? `Editing ${selectedOpportunity.id}` : "Creating new opportunity"}
+                <h3 style={{ margin: 0, color: adminTheme.color.text }}>{t("商机详情", "Opportunity Detail")}</h3>
+                <p style={{ margin: "6px 0 0", ...helperTextStyle }}>
+                  {selectedOpportunity
+                    ? t(`正在编辑 ${selectedOpportunity.id}`, `Editing ${selectedOpportunity.id}`)
+                    : t("正在创建新商机", "Creating new opportunity")}
                 </p>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+              <div style={formGridThreeStyle}>
                 <input
                   style={inputStyle}
-                  placeholder="Name"
+                  placeholder={t("名称", "Name")}
                   value={opportunityForm.name}
                   onChange={(e) => setOpportunityForm((v) => ({ ...v, name: e.target.value }))}
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Estimated Amount"
+                  placeholder={t("预计金额", "Estimated Amount")}
                   value={opportunityForm.estimated_amount}
                   onChange={(e) =>
                     setOpportunityForm((v) => ({ ...v, estimated_amount: e.target.value }))
@@ -1082,7 +1333,7 @@ const CrmPage = () => {
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Customer ID"
+                  placeholder={t("客户 ID", "Customer ID")}
                   value={opportunityForm.customer_id}
                   onChange={(e) =>
                     setOpportunityForm((v) => ({ ...v, customer_id: e.target.value }))
@@ -1095,14 +1346,14 @@ const CrmPage = () => {
                     setOpportunityForm((v) => ({ ...v, stage: e.target.value as Opportunity["stage"] }))
                   }
                 >
-                  <option value="prospecting">prospecting</option>
-                  <option value="negotiation">negotiation</option>
-                  <option value="closed_won">closed_won</option>
-                  <option value="closed_lost">closed_lost</option>
+                  <option value="prospecting">{opportunityStageLabel("prospecting")}</option>
+                  <option value="negotiation">{opportunityStageLabel("negotiation")}</option>
+                  <option value="closed_won">{opportunityStageLabel("closed_won")}</option>
+                  <option value="closed_lost">{opportunityStageLabel("closed_lost")}</option>
                 </select>
                 <input
                   style={inputStyle}
-                  placeholder="Expected Close Date"
+                  placeholder={t("预计成交日期", "Expected Close Date")}
                   value={opportunityForm.expected_close_date}
                   onChange={(e) =>
                     setOpportunityForm((v) => ({ ...v, expected_close_date: e.target.value }))
@@ -1110,18 +1361,20 @@ const CrmPage = () => {
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Lead ID"
+                  placeholder={t("线索 ID", "Lead ID")}
                   value={opportunityForm.lead_id}
                   onChange={(e) => setOpportunityForm((v) => ({ ...v, lead_id: e.target.value }))}
                 />
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={actionRowStyle}>
                 <button
                   type="button"
                   style={primaryButtonStyle}
                   onClick={() => void saveOpportunity()}
                 >
-                  {selectedOpportunity ? "Save Opportunity" : "Create Opportunity"}
+                  {selectedOpportunity
+                    ? t("保存商机", "Save Opportunity")
+                    : t("创建商机", "Create Opportunity")}
                 </button>
                 {selectedOpportunity ? (
                   <button
@@ -1129,24 +1382,24 @@ const CrmPage = () => {
                     style={buttonStyle}
                     onClick={() => void deleteOpportunity(selectedOpportunity.id)}
                   >
-                    Delete
+                    {t("删除", "Delete")}
                   </button>
                 ) : null}
               </div>
 
-              <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
-                <h4 style={{ margin: 0 }}>Related Activities (Tasks)</h4>
+              <div style={sectionDividerStyle}>
+                <h4 style={{ margin: 0, color: adminTheme.color.text }}>{t("关联活动（任务）", "Related Activities (Tasks)")}</h4>
                 <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
                   {relatedTasks.map((task) => (
-                    <div key={task.id} style={{ ...listItemBase, padding: "8px 10px" }}>
+                    <div key={task.id} style={microCardStyle}>
                       <div style={{ fontWeight: 700, fontSize: 13 }}>{task.title}</div>
-                      <div style={{ fontSize: 12, color: "#475569" }}>
-                        {task.status} · {task.priority} · {task.type}
+                      <div style={helperTextStyle}>
+                        {taskStatusLabel(task.status)} · {taskPriorityLabel(task.priority)} · {taskTypeLabel(task.type)}
                       </div>
                     </div>
                   ))}
                   {!relatedTasks.length ? (
-                    <div style={{ fontSize: 12, color: "#64748b" }}>No tasks linked.</div>
+                    <div style={helperTextStyle}>{t("暂无关联任务。", "No tasks linked.")}</div>
                   ) : null}
                 </div>
               </div>
@@ -1156,27 +1409,29 @@ const CrmPage = () => {
           {tab === "task" ? (
             <>
               <div>
-                <h3 style={{ margin: 0 }}>Task Detail</h3>
-                <p style={{ margin: "6px 0 0", color: "#475569", fontSize: 12 }}>
-                  {selectedTask ? `Editing ${selectedTask.id}` : "Creating new task"}
+                <h3 style={{ margin: 0, color: adminTheme.color.text }}>{t("任务详情", "Task Detail")}</h3>
+                <p style={{ margin: "6px 0 0", ...helperTextStyle }}>
+                  {selectedTask
+                    ? t(`正在编辑 ${selectedTask.id}`, `Editing ${selectedTask.id}`)
+                    : t("正在创建新任务", "Creating new task")}
                 </p>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+              <div style={formGridThreeStyle}>
                 <input
                   style={inputStyle}
-                  placeholder="Title"
+                  placeholder={t("标题", "Title")}
                   value={taskForm.title}
                   onChange={(e) => setTaskForm((v) => ({ ...v, title: e.target.value }))}
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Description"
+                  placeholder={t("描述", "Description")}
                   value={taskForm.description}
                   onChange={(e) => setTaskForm((v) => ({ ...v, description: e.target.value }))}
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Due Date"
+                  placeholder={t("截止日期", "Due Date")}
                   value={taskForm.due_date}
                   onChange={(e) => setTaskForm((v) => ({ ...v, due_date: e.target.value }))}
                 />
@@ -1185,11 +1440,11 @@ const CrmPage = () => {
                   value={taskForm.type}
                   onChange={(e) => setTaskForm((v) => ({ ...v, type: e.target.value as Task["type"] }))}
                 >
-                  <option value="todo">todo</option>
-                  <option value="call">call</option>
-                  <option value="email">email</option>
-                  <option value="meeting">meeting</option>
-                  <option value="follow_up">follow_up</option>
+                  <option value="todo">{taskTypeLabel("todo")}</option>
+                  <option value="call">{taskTypeLabel("call")}</option>
+                  <option value="email">{taskTypeLabel("email")}</option>
+                  <option value="meeting">{taskTypeLabel("meeting")}</option>
+                  <option value="follow_up">{taskTypeLabel("follow_up")}</option>
                 </select>
                 <select
                   style={inputStyle}
@@ -1198,10 +1453,10 @@ const CrmPage = () => {
                     setTaskForm((v) => ({ ...v, status: e.target.value as Task["status"] }))
                   }
                 >
-                  <option value="open">open</option>
-                  <option value="in_progress">in_progress</option>
-                  <option value="completed">completed</option>
-                  <option value="canceled">canceled</option>
+                  <option value="open">{taskStatusLabel("open")}</option>
+                  <option value="in_progress">{taskStatusLabel("in_progress")}</option>
+                  <option value="completed">{taskStatusLabel("completed")}</option>
+                  <option value="canceled">{taskStatusLabel("canceled")}</option>
                 </select>
                 <select
                   style={inputStyle}
@@ -1210,35 +1465,35 @@ const CrmPage = () => {
                     setTaskForm((v) => ({ ...v, priority: e.target.value as Task["priority"] }))
                   }
                 >
-                  <option value="low">low</option>
-                  <option value="medium">medium</option>
-                  <option value="high">high</option>
-                  <option value="urgent">urgent</option>
+                  <option value="low">{taskPriorityLabel("low")}</option>
+                  <option value="medium">{taskPriorityLabel("medium")}</option>
+                  <option value="high">{taskPriorityLabel("high")}</option>
+                  <option value="urgent">{taskPriorityLabel("urgent")}</option>
                 </select>
                 <input
                   style={inputStyle}
-                  placeholder="Owner ID"
+                  placeholder={t("负责人 ID", "Owner ID")}
                   value={taskForm.owner_id}
                   onChange={(e) => setTaskForm((v) => ({ ...v, owner_id: e.target.value }))}
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Customer ID"
+                  placeholder={t("客户 ID", "Customer ID")}
                   value={taskForm.customer_id}
                   onChange={(e) => setTaskForm((v) => ({ ...v, customer_id: e.target.value }))}
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Completed At"
+                  placeholder={t("完成时间", "Completed At")}
                   value={taskForm.completed_at}
                   onChange={(e) =>
                     setTaskForm((v) => ({ ...v, completed_at: e.target.value }))
                   }
                 />
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={actionRowStyle}>
                 <button type="button" style={primaryButtonStyle} onClick={() => void saveTask()}>
-                  {selectedTask ? "Save Task" : "Create Task"}
+                  {selectedTask ? t("保存任务", "Save Task") : t("创建任务", "Create Task")}
                 </button>
                 {selectedTask ? (
                   <button
@@ -1246,18 +1501,18 @@ const CrmPage = () => {
                     style={buttonStyle}
                     onClick={() => void deleteTask(selectedTask.id)}
                   >
-                    Delete
+                    {t("删除", "Delete")}
                   </button>
                 ) : null}
               </div>
 
               {selectedTask ? (
-                <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12, display: "grid", gap: 8 }}>
-                  <h4 style={{ margin: 0 }}>Related To</h4>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                <div style={{ ...sectionDividerStyle, display: "grid", gap: 8 }}>
+                  <h4 style={{ margin: 0, color: adminTheme.color.text }}>{t("关联对象", "Related To")}</h4>
+                  <div style={formGridThreeStyle}>
                     <input
                       style={inputStyle}
-                      placeholder="target_type"
+                      placeholder={t("关联类型", "Target type")}
                       value={taskRelationForm.target_type}
                       onChange={(e) =>
                         setTaskRelationForm((v) => ({ ...v, target_type: e.target.value }))
@@ -1265,7 +1520,7 @@ const CrmPage = () => {
                     />
                     <input
                       style={inputStyle}
-                      placeholder="target_id"
+                      placeholder={t("关联目标 ID", "Target ID")}
                       value={taskRelationForm.target_id}
                       onChange={(e) =>
                         setTaskRelationForm((v) => ({ ...v, target_id: e.target.value }))
@@ -1273,7 +1528,7 @@ const CrmPage = () => {
                     />
                     <input
                       style={inputStyle}
-                      placeholder="relationship"
+                      placeholder={t("关联关系", "Relationship")}
                       value={taskRelationForm.relationship}
                       onChange={(e) =>
                         setTaskRelationForm((v) => ({ ...v, relationship: e.target.value }))
@@ -1282,7 +1537,7 @@ const CrmPage = () => {
                   </div>
                   <div>
                     <button type="button" style={buttonStyle} onClick={() => void addTaskRelation()}>
-                      Add Relation
+                      {t("添加关联", "Add Relation")}
                     </button>
                   </div>
 
@@ -1291,14 +1546,14 @@ const CrmPage = () => {
                       <div
                         key={relation.id}
                         style={{
-                          ...listItemBase,
+                          ...microCardStyle,
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
-                          padding: "8px 10px",
+                          gap: 12,
                         }}
                       >
-                        <div style={{ fontSize: 12 }}>
+                      <div style={{ ...helperTextStyle, color: adminTheme.color.text }}>
                           <strong>{relation.target_type}</strong> · {relation.target_id} · {relation.relationship}
                         </div>
                         <button
@@ -1306,12 +1561,12 @@ const CrmPage = () => {
                           style={buttonStyle}
                           onClick={() => void removeTaskRelation(relation.id)}
                         >
-                          Remove
+                          {t("移除", "Remove")}
                         </button>
                       </div>
                     ))}
                     {!taskRelations.length ? (
-                      <div style={{ fontSize: 12, color: "#64748b" }}>No relations.</div>
+                      <div style={helperTextStyle}>{t("暂无关联。", "No relations.")}</div>
                     ) : null}
                   </div>
                 </div>
@@ -1320,12 +1575,13 @@ const CrmPage = () => {
           ) : null}
         </div>
       </div>
+      <AdminLanguageDock />
     </div>
   )
 }
 
 export const config = defineRouteConfig({
-  label: "CRM",
+  label: "客户关系 CRM",
   rank: 210,
 })
 

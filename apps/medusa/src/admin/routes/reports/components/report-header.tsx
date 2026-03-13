@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react"
+import { adminTheme } from "../../../lib/admin-theme"
 
 type Crumb = {
   label: string
@@ -13,12 +14,13 @@ type ReportHeaderProps = {
 }
 
 const shellStyle: CSSProperties = {
-  background: "#fff",
-  border: "1px solid #d9e3ef",
-  borderRadius: 16,
-  padding: 16,
+  background: adminTheme.color.surface,
+  border: `1px solid ${adminTheme.color.border}`,
+  borderRadius: adminTheme.radius.lg,
+  padding: 18,
   display: "grid",
   gap: 8,
+  boxShadow: adminTheme.shadow.card,
 }
 
 const ReportHeader = ({ title, subtitle, crumbs = [], aside }: ReportHeaderProps) => {
@@ -27,11 +29,11 @@ const ReportHeader = ({ title, subtitle, crumbs = [], aside }: ReportHeaderProps
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "grid", gap: 8 }}>
           {crumbs.length ? (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: "#607086" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: adminTheme.color.textMuted }}>
               {crumbs.map((crumb, index) => (
                 <span key={`${crumb.label}-${index}`} style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
                   {crumb.href ? (
-                    <a href={crumb.href} style={{ color: "#173f8a", textDecoration: "none" }}>
+                    <a href={crumb.href} style={{ color: adminTheme.color.primary, textDecoration: "none", fontWeight: 700 }}>
                       {crumb.label}
                     </a>
                   ) : (
@@ -42,8 +44,8 @@ const ReportHeader = ({ title, subtitle, crumbs = [], aside }: ReportHeaderProps
               ))}
             </div>
           ) : null}
-          <h2 style={{ margin: 0, fontSize: 22 }}>{title}</h2>
-          {subtitle ? <div style={{ fontSize: 13, color: "#607086" }}>{subtitle}</div> : null}
+          <h2 style={{ margin: 0, fontSize: 24, lineHeight: 1.15, color: adminTheme.color.text }}>{title}</h2>
+          {subtitle ? <div style={{ fontSize: 13, color: adminTheme.color.textMuted }}>{subtitle}</div> : null}
         </div>
         {aside ? <div>{aside}</div> : null}
       </div>

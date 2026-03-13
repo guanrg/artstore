@@ -1,0 +1,37 @@
+{
+  "refundReasons": {
+    "domain": "Refund Reasons",
+    "subtitle": "Manage reasons for issuing refunds.",
+    "calloutHint": "Manage the reasons to categorize refunds.",
+    "editReason": "Edit Refund Reason",
+    "create": {
+      "header": "Add Refund Reason",
+      "subtitle": "Specify the most common reasons for refunds.",
+      "hint": "Create a new refund reason to categorize refunds.",
+      "successToast": "Refund reason {{label}} was successfully created."
+    },
+    "edit": {
+      "header": "Edit Refund Reason",
+      "subtitle": "Edit the value of the refund reason.",
+      "successToast": "Refund reason {{label}} was successfully updated."
+    },
+    "delete": {
+      "confirmation": "You are about to delete the refund reason \"{{label}}\". This action cannot be undone.",
+      "successToast": "Refund reason was successfully deleted."
+    },
+    "fields": {
+      "label": {
+        "label": "Label",
+        "placeholder": "Gesture of goodwill"
+      },
+      "code": {
+        "label": "Code",
+        "placeholder": "gesture_of_goodwill"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Used when refunding as a gesture of goodwill"
+      }
+    }
+  }
+}

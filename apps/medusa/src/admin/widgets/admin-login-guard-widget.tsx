@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
+import { getAdminLanguage, useAdminLanguage } from "../lib/admin-language"
+import AdminLanguageDock from "../components/admin-language-dock"
+import NativePageHero from "../components/native-page-hero"
+import { patchNativePageLayout } from "../lib/native-page-layout"
+import { adminTheme } from "../lib/admin-theme"
 
 const REASON_KEY = "reason"
 const REASON_AUTH_FAILED = "auth-failed"
@@ -245,8 +250,9 @@ function useInstallAdminTitle() {
     }
     globalScope[marker] = true
 
-    const title = "Art Store Admin"
     const applyTitle = () => {
+      const language = getAdminLanguage()
+      const title = language === "zhCN" ? "Art Store 管理后台" : "Art Store Admin"
       if (document.title !== title) {
         document.title = title
       }
@@ -303,7 +309,8 @@ function useCustomizeLoginHeading() {
         return
       }
 
-      target.textContent = "Art Store Admin"
+      const language = getAdminLanguage()
+      target.textContent = language === "zhCN" ? "Art Store 管理后台" : "Art Store Admin"
       target.style.fontSize = "34px"
       target.style.lineHeight = "1.12"
       target.style.fontWeight = "800"
@@ -380,13 +387,82 @@ function useApplyAdminTheme() {
     style.id = id
     style.textContent = `
       body, #root {
-        background: #fff8dc !important;
+        background: radial-gradient(circle at top left, ${adminTheme.color.highlight} 0%, transparent 22%), linear-gradient(180deg, ${adminTheme.color.canvas} 0%, ${adminTheme.color.canvasAlt} 100%) !important;
       }
       [class*="bg-ui-bg-base"], [class*="bg-ui-bg-subtle"], [class*="bg-ui-bg-component"] {
-        background-color: #fff6cf !important;
+        background-color: ${adminTheme.color.surface} !important;
       }
       [class*="border-ui-border"], [class*="border-ui-border-base"], [class*="border-ui-border-component"] {
-        border-color: #e8dca8 !important;
+        border-color: ${adminTheme.color.border} !important;
+      }
+      [class*="shadow-elevation-card-rest"], [class*="shadow-borders-base"] {
+        box-shadow: ${adminTheme.shadow.card} !important;
+      }
+      [class*="rounded-xl"], [class*="rounded-lg"] {
+        border-radius: ${adminTheme.radius.md}px !important;
+      }
+      a, button {
+        transition: box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease !important;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      [role="button"]:focus-visible {
+        outline: 2px solid ${adminTheme.color.primary} !important;
+        outline-offset: 2px !important;
+      }
+      [class*="text-ui-fg-base"] {
+        color: ${adminTheme.color.text} !important;
+      }
+      [class*="text-ui-fg-subtle"], [class*="text-ui-fg-muted"] {
+        color: ${adminTheme.color.textMuted} !important;
+      }
+      [class*="bg-ui-button-neutral"], [class*="bg-ui-bg-field"], [class*="bg-ui-bg-interactive"] {
+        background-color: ${adminTheme.color.surface} !important;
+      }
+      [class*="border-ui-border-interactive"], [class*="border-ui-border-strong"] {
+        border-color: ${adminTheme.color.borderStrong} !important;
+      }
+      [data-order-page-shell="true"] {
+        background: linear-gradient(135deg, ${adminTheme.color.surfaceMuted} 0%, ${adminTheme.color.primarySoft} 58%, ${adminTheme.color.surface} 100%) !important;
+        border: 1px solid ${adminTheme.color.border} !important;
+        border-radius: ${adminTheme.radius.lg}px !important;
+        box-shadow: ${adminTheme.shadow.card} !important;
+        padding: 14px !important;
+        margin-bottom: 14px !important;
+      }
+      body[data-admin-route="orders"] thead th {
+        background: ${adminTheme.color.surfaceMuted} !important;
+        color: ${adminTheme.color.textMuted} !important;
+        border-bottom: 1px solid ${adminTheme.color.border} !important;
+      }
+      body[data-admin-route="orders"] tbody td {
+        border-bottom: 1px solid ${adminTheme.color.border} !important;
+      }
+      body[data-admin-route="orders"] tbody tr:hover td {
+        background: ${adminTheme.color.primarySoft} !important;
+      }
+      body[data-admin-route="orders"] input,
+      body[data-admin-route="orders"] select,
+      body[data-admin-route="orders"] textarea {
+        border-color: ${adminTheme.color.border} !important;
+        border-radius: ${adminTheme.radius.sm}px !important;
+        background: ${adminTheme.color.surface} !important;
+        color: ${adminTheme.color.text} !important;
+        box-shadow: ${adminTheme.shadow.soft} !important;
+      }
+      body[data-admin-route="orders"] button:not([role="checkbox"]):not([role="radio"]) {
+        border-radius: 999px !important;
+      }
+      body[data-admin-route="orders"] [data-order-filter-shell="true"] {
+        background: ${adminTheme.color.surface} !important;
+        border: 1px solid ${adminTheme.color.border} !important;
+        border-radius: ${adminTheme.radius.md}px !important;
+        box-shadow: ${adminTheme.shadow.card} !important;
+        padding: 12px !important;
+        margin-bottom: 12px !important;
+      }
+      [data-native-hero-hidden="true"] {
+        display: none !important;
       }
 
       /* Make checkbox/radio selected state obvious across admin pages. */
@@ -395,9 +471,9 @@ function useApplyAdminTheme() {
         appearance: none !important;
         width: 16px !important;
         height: 16px !important;
-        border: 1.5px solid #111827 !important;
+        border: 1.5px solid ${adminTheme.color.primary} !important;
         border-radius: 4px !important;
-        background: #ffffff !important;
+        background: ${adminTheme.color.surface} !important;
         display: inline-grid !important;
         place-content: center !important;
         margin: 0 !important;
@@ -410,11 +486,11 @@ function useApplyAdminTheme() {
         transform: scale(0) !important;
         transition: transform 120ms ease-in-out !important;
         clip-path: polygon(14% 44%, 0 60%, 38% 100%, 100% 20%, 84% 6%, 36% 67%) !important;
-        background: #ffffff !important;
+        background: ${adminTheme.color.primaryText} !important;
       }
       input[type="checkbox"]:checked {
-        background: #111827 !important;
-        border-color: #111827 !important;
+        background: ${adminTheme.color.primary} !important;
+        border-color: ${adminTheme.color.primary} !important;
       }
       input[type="checkbox"]:checked::before {
         transform: scale(1) !important;
@@ -425,9 +501,9 @@ function useApplyAdminTheme() {
         appearance: none !important;
         width: 16px !important;
         height: 16px !important;
-        border: 1.5px solid #111827 !important;
+        border: 1.5px solid ${adminTheme.color.primary} !important;
         border-radius: 999px !important;
-        background: #ffffff !important;
+        background: ${adminTheme.color.surface} !important;
         display: inline-grid !important;
         place-content: center !important;
         margin: 0 !important;
@@ -440,54 +516,76 @@ function useApplyAdminTheme() {
         border-radius: 999px !important;
         transform: scale(0) !important;
         transition: transform 120ms ease-in-out !important;
-        background: #ffffff !important;
+        background: ${adminTheme.color.primaryText} !important;
       }
       input[type="radio"]:checked {
-        background: #111827 !important;
-        border-color: #111827 !important;
+        background: ${adminTheme.color.primary} !important;
+        border-color: ${adminTheme.color.primary} !important;
       }
       input[type="radio"]:checked::before {
         transform: scale(1) !important;
       }
 
       [role="checkbox"][data-state="checked"] {
-        background-color: #111827 !important;
-        border-color: #111827 !important;
+        background-color: ${adminTheme.color.primary} !important;
+        border-color: ${adminTheme.color.primary} !important;
       }
       button[role="checkbox"][data-state="checked"],
       [role="checkbox"][aria-checked="true"],
       button[aria-checked="true"] {
-        background-color: #111827 !important;
-        border-color: #111827 !important;
-        color: #ffffff !important;
+        background-color: ${adminTheme.color.primary} !important;
+        border-color: ${adminTheme.color.primary} !important;
+        color: ${adminTheme.color.primaryText} !important;
       }
       [role="checkbox"][data-state="checked"] svg,
       button[role="checkbox"][data-state="checked"] svg,
       [role="checkbox"][aria-checked="true"] svg {
-        color: #ffffff !important;
-        stroke: #ffffff !important;
+        color: ${adminTheme.color.primaryText} !important;
+        stroke: ${adminTheme.color.primaryText} !important;
       }
       button[role="checkbox"][data-state="checked"]::after,
       [role="checkbox"][aria-checked="true"]::after,
       button[aria-checked="true"]::after {
         content: "✓" !important;
-        color: #ffffff !important;
+        color: ${adminTheme.color.primaryText} !important;
         font-size: 12px !important;
         font-weight: 700 !important;
         line-height: 1 !important;
       }
 
       [role="radio"][data-state="checked"] {
-        background-color: #111827 !important;
-        border-color: #111827 !important;
+        background-color: ${adminTheme.color.primary} !important;
+        border-color: ${adminTheme.color.primary} !important;
       }
       button[role="radio"][data-state="checked"],
       [role="radio"][aria-checked="true"] {
-        background-color: #111827 !important;
-        border-color: #111827 !important;
+        background-color: ${adminTheme.color.primary} !important;
+        border-color: ${adminTheme.color.primary} !important;
       }
     `
     document.head.appendChild(style)
+  }, [])
+}
+
+function useStyleOrderPage() {
+  useEffect(() => {
+    const apply = () => {
+      patchNativePageLayout({
+        routePattern: /^\/app\/orders\/?$/,
+        bodyRoute: "orders",
+        heroTitleKeywords: ["order", "订单"],
+        heroShellAttr: "orderPageShell",
+        actionHostKey: "orders-list",
+        filterShellAttr: "orderFilterShell",
+      })
+    }
+
+    apply()
+    const observer = new MutationObserver(() => apply())
+    observer.observe(document.body, { subtree: true, childList: true })
+    window.addEventListener("popstate", apply)
+    window.addEventListener("hashchange", apply)
+    return () => observer.disconnect()
   }, [])
 }
 
@@ -499,15 +597,16 @@ function useForceAdminChinese() {
       .map((v) => v.trim())
       .some((pair) => pair === `lng=${ADMIN_LANG_CODE}`)
 
-    const changed = current !== ADMIN_LANG_CODE || !hasCookie
-    if (!changed) {
+    const nextLanguage = current || ADMIN_LANG_CODE
+    const changed = current !== nextLanguage || !hasCookie
+    if (!changed && current) {
       return
     }
 
-    localStorage.setItem("lng", ADMIN_LANG_CODE)
-    document.cookie = `lng=${ADMIN_LANG_CODE}; path=/; max-age=31536000; samesite=lax`
+    localStorage.setItem("lng", nextLanguage)
+    document.cookie = `lng=${nextLanguage}; path=/; max-age=31536000; samesite=lax`
 
-    if (!sessionStorage.getItem(ADMIN_LANG_RELOAD_KEY)) {
+    if (!current && !sessionStorage.getItem(ADMIN_LANG_RELOAD_KEY)) {
       sessionStorage.setItem(ADMIN_LANG_RELOAD_KEY, "1")
       window.location.reload()
     }
@@ -515,6 +614,7 @@ function useForceAdminChinese() {
 }
 
 const AdminLoginGuardWidget = () => {
+  const { t } = useAdminLanguage()
   useForceAdminChinese()
   useRestoreAdminSession()
   useInstallLoginGuard()
@@ -522,8 +622,10 @@ const AdminLoginGuardWidget = () => {
   useCustomizeLoginHeading()
   useRememberLoginEmail()
   useApplyAdminTheme()
+  useStyleOrderPage()
 
   const isLogin = useMemo(() => /^\/app\/login\/?$/.test(window.location.pathname), [])
+  const isOrderPage = useMemo(() => /^\/app\/orders(\/.*)?$/.test(window.location.pathname), [])
   const [showMessage, setShowMessage] = useState(false)
 
   useEffect(() => {
@@ -542,24 +644,32 @@ const AdminLoginGuardWidget = () => {
     window.history.replaceState(null, "", next)
   }, [isLogin])
 
-  if (!isLogin || !showMessage) {
-    return null
-  }
-
   return (
-    <div
-      style={{
-        marginTop: 12,
-        border: "1px solid #f3c6c6",
-        background: "#fff7f7",
-        color: "#b42318",
-        borderRadius: 8,
-        padding: "8px 10px",
-        fontSize: 13,
-      }}
-    >
-      邮箱或密码错误。
-    </div>
+    <>
+      {isOrderPage ? (
+        <NativePageHero
+          title={t("订单", "Orders")}
+          pageKey="orders-list"
+        />
+      ) : null}
+      <AdminLanguageDock />
+
+      {isLogin && showMessage ? (
+        <div
+          style={{
+            marginTop: 12,
+            border: `1px solid ${adminTheme.color.danger}`,
+            background: adminTheme.color.dangerSoft,
+            color: adminTheme.color.danger,
+            borderRadius: 10,
+            padding: "8px 10px",
+            fontSize: 13,
+          }}
+        >
+          {t("邮箱或密码错误。", "Incorrect email or password.")}
+        </div>
+      ) : null}
+    </>
   )
 }
 

@@ -2,7 +2,7 @@ import { defineRouteConfig } from "@medusajs/admin-sdk"
 import SchemaDocsView from "../schema-docs/schema-docs-view"
 
 const SchemaCrmPage = () => {
-  return <SchemaDocsView title="数据库表定义（CRM）" category="crm" />
+  return <SchemaDocsView titleZh="数据库表定义（CRM）" titleEn="Database Schema (CRM)" category="crm" />
 }
 
 export const config = defineRouteConfig({

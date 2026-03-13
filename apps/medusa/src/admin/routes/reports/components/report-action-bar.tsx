@@ -1,4 +1,5 @@
 import { toolbarInputStyle } from "./filter-toolbar"
+import { adminTheme } from "../../../lib/admin-theme"
 
 type ReportAction =
   | {
@@ -57,22 +58,22 @@ const ReportActionBar = ({ actions, status }: ReportActionBarProps) => {
             cursor: "default",
             borderColor:
               status.tone === "success"
-                ? "#b7e0c2"
+                ? adminTheme.color.success
                 : status.tone === "error"
-                  ? "#f2c7c7"
-                  : "#c6d7f4",
+                  ? adminTheme.color.danger
+                  : adminTheme.color.info,
             background:
               status.tone === "success"
-                ? "#e8f7ec"
+                ? adminTheme.color.successSoft
                 : status.tone === "error"
-                  ? "#fdecec"
-                  : "#e8f0fb",
+                  ? adminTheme.color.dangerSoft
+                  : adminTheme.color.infoSoft,
             color:
               status.tone === "success"
-                ? "#166534"
+                ? adminTheme.color.success
                 : status.tone === "error"
-                  ? "#b42318"
-                  : "#173f8a",
+                  ? adminTheme.color.danger
+                  : adminTheme.color.info,
             fontWeight: 600,
           }}
         >

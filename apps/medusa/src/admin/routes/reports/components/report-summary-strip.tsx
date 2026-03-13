@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react"
+import { adminTheme } from "../../../lib/admin-theme"
 
 type SummaryItem = {
   label: string
@@ -15,7 +16,7 @@ const shellStyle: CSSProperties = {
   gap: 16,
   marginBottom: 12,
   fontSize: 13,
-  color: "#23364e",
+  color: adminTheme.color.text,
   flexWrap: "wrap",
 }
 
@@ -25,7 +26,7 @@ const ReportSummaryStrip = ({ items }: ReportSummaryStripProps) => {
       {items.map((item) => (
         <span
           key={`${item.label}-${item.value}`}
-          style={item.tone === "accent" ? { color: "#173f8a", fontWeight: 600 } : undefined}
+          style={item.tone === "accent" ? { color: adminTheme.color.primary, fontWeight: 700 } : undefined}
         >
           {item.label} {item.value}
         </span>

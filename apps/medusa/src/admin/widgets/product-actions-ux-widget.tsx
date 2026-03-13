@@ -1,5 +1,10 @@
 import { useEffect } from "react"
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
+import AdminLanguageDock from "../components/admin-language-dock"
+import NativePageHero from "../components/native-page-hero"
+import { patchNativePageLayout } from "../lib/native-page-layout"
+import { useAdminLanguage } from "../lib/admin-language"
+import { adminTheme } from "../lib/admin-theme"
 
 function isProductDetailsRoute() {
   return /^\/app\/products\/[^/]+\/?$/.test(window.location.pathname)
@@ -16,7 +21,7 @@ function findProductHeader() {
   })
 }
 
-function upsertActionButtons() {
+function upsertActionButtons(labels: { edit: string; delete: string }) {
   if (!isProductDetailsRoute()) {
     return
   }
@@ -65,24 +70,25 @@ function upsertActionButtons() {
     btn.type = "button"
     btn.textContent = label
     btn.onclick = onClick
-    btn.style.borderRadius = "8px"
-    btn.style.border = variant === "danger" ? "1px solid #f1b4b4" : "1px solid #d0d5dd"
-    btn.style.background = variant === "danger" ? "#fff5f5" : "#ffffff"
-    btn.style.color = variant === "danger" ? "#b42318" : "#111827"
+    btn.style.borderRadius = "999px"
+    btn.style.border = variant === "danger" ? `1px solid ${adminTheme.color.danger}` : `1px solid ${adminTheme.color.border}`
+    btn.style.background = variant === "danger" ? adminTheme.color.dangerSoft : adminTheme.color.surface
+    btn.style.color = variant === "danger" ? adminTheme.color.danger : adminTheme.color.text
     btn.style.padding = "6px 12px"
     btn.style.fontSize = "13px"
     btn.style.fontWeight = "600"
     btn.style.cursor = "pointer"
+    btn.style.boxShadow = adminTheme.shadow.soft
     return btn
   }
 
   host.appendChild(
-    makeButton("Edit", "primary", () => {
+    makeButton(labels.edit, "primary", () => {
       const base = window.location.pathname.replace(/\/$/, "")
       window.location.assign(`${base}/edit`)
     })
   )
-  host.appendChild(makeButton("Delete", "danger", () => void clickDeleteFromMenu()))
+  host.appendChild(makeButton(labels.delete, "danger", () => void clickDeleteFromMenu()))
 }
 
 function patchDialogs() {
@@ -109,7 +115,7 @@ function patchDialogs() {
     dialog.style.maxHeight = "88vh"
     dialog.style.overflow = "auto"
     dialog.style.borderRadius = "14px"
-    dialog.style.boxShadow = "0 24px 60px rgba(0, 0, 0, 0.18)"
+    dialog.style.boxShadow = adminTheme.shadow.focus
     dialog.style.zIndex = "1001"
 
     const textarea = dialog.querySelector<HTMLTextAreaElement>("textarea")
@@ -123,9 +129,21 @@ function patchDialogs() {
 }
 
 const ProductActionsUxWidget = () => {
+  const { t } = useAdminLanguage()
+
   useEffect(() => {
     const run = () => {
-      upsertActionButtons()
+      upsertActionButtons({
+        edit: t("编辑", "Edit"),
+        delete: t("删除", "Delete"),
+      })
+      patchNativePageLayout({
+        routePattern: /^\/app\/products\/[^/]+\/?$/,
+        bodyRoute: "products",
+        heroTitleKeywords: ["product", "商品"],
+        heroShellAttr: "productPageShell",
+        actionHostKey: "products-detail",
+      })
       patchDialogs()
     }
 
@@ -134,9 +152,21 @@ const ProductActionsUxWidget = () => {
     observer.observe(document.body, { subtree: true, childList: true })
 
     return () => observer.disconnect()
-  }, [])
+  }, [t])
 
-  return null
+  if (!isProductDetailsRoute()) {
+    return null
+  }
+
+  return (
+    <>
+      <NativePageHero
+        title={t("商品", "Products")}
+        pageKey="products-detail"
+      />
+      <AdminLanguageDock />
+    </>
+  )
 }
 
 export const config = defineWidgetConfig({

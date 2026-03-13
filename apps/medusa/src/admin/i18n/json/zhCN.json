@@ -1,0 +1,37 @@
+{
+  "refundReasons": {
+    "domain": "退款原因",
+    "subtitle": "管理发起退款时使用的原因。",
+    "calloutHint": "管理用于分类退款的原因。",
+    "editReason": "编辑退款原因",
+    "create": {
+      "header": "添加退款原因",
+      "subtitle": "指定最常见的退款原因。",
+      "hint": "创建新的退款原因以分类退款。",
+      "successToast": "退款原因 {{label}} 创建成功。"
+    },
+    "edit": {
+      "header": "编辑退款原因",
+      "subtitle": "编辑退款原因的值。",
+      "successToast": "退款原因 {{label}} 更新成功。"
+    },
+    "delete": {
+      "confirmation": "您即将删除退款原因“{{label}}”。此操作无法撤销。",
+      "successToast": "退款原因删除成功。"
+    },
+    "fields": {
+      "label": {
+        "label": "标签",
+        "placeholder": "善意补偿"
+      },
+      "code": {
+        "label": "代码",
+        "placeholder": "gesture_of_goodwill"
+      },
+      "description": {
+        "label": "描述",
+        "placeholder": "用于善意退款或客服补偿"
+      }
+    }
+  }
+}

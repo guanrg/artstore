@@ -1,10 +1,14 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
+import AdminLanguageDock from "../../components/admin-language-dock"
 import FilterToolbar, {
   ToolbarToggleGroup,
   toolbarInputStyle,
 } from "../reports/components/filter-toolbar"
+import { useAdminLanguage } from "../../lib/admin-language"
+import { adminCardStyle, adminTheme } from "../../lib/admin-theme"
 import ReportActionBar from "../reports/components/report-action-bar"
+import ReportBadge from "../reports/components/report-badge"
 import ReportEmptyState from "../reports/components/report-empty-state"
 import ReportHeader from "../reports/components/report-header"
 import ReportSummaryStrip from "../reports/components/report-summary-strip"
@@ -26,12 +30,11 @@ const shellStyle: CSSProperties = {
   padding: 16,
   display: "grid",
   gap: 16,
-  background: "#f4f7fb",
+  background: `linear-gradient(180deg, ${adminTheme.color.canvas} 0%, ${adminTheme.color.canvasAlt} 100%)`,
 }
 
 const panelStyle: CSSProperties = {
-  background: "#fff",
-  border: "1px solid #d9e3ef",
+  ...adminCardStyle,
   borderRadius: 16,
   padding: 16,
 }
@@ -46,7 +49,7 @@ const truncatedCellStyle: CSSProperties = {
 const emptyStateStyle: CSSProperties = {
   padding: "32px 12px",
   textAlign: "center",
-  color: "#607086",
+  color: adminTheme.color.textMuted,
   fontSize: 14,
 }
 
@@ -54,6 +57,39 @@ const sortableHeaderStyle: CSSProperties = {
   cursor: "pointer",
   userSelect: "none",
   transition: "color 140ms ease",
+}
+
+const subtleTextStyle: CSSProperties = { color: adminTheme.color.textMuted }
+const errorBannerStyle: CSSProperties = {
+  marginBottom: 12,
+  padding: 12,
+  borderRadius: 12,
+  border: `1px solid ${adminTheme.color.danger}`,
+  background: adminTheme.color.dangerSoft,
+  color: adminTheme.color.danger,
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  alignItems: "center",
+  flexWrap: "wrap",
+}
+const tableHeaderBaseStyle: CSSProperties = {
+  textAlign: "left",
+  padding: "10px 8px",
+  fontSize: 12,
+  color: adminTheme.color.textMuted,
+  borderBottom: `1px solid ${adminTheme.color.border}`,
+  background: adminTheme.color.surfaceMuted,
+}
+const tableCellStyle: CSSProperties = {
+  padding: "10px 8px",
+  borderBottom: `1px solid ${adminTheme.color.border}`,
+  color: adminTheme.color.text,
+}
+const tableLinkStyle: CSSProperties = {
+  color: adminTheme.color.primary,
+  textDecoration: "none",
+  display: "inline-block",
 }
 
 const OPPORTUNITY_COLUMNS_STORAGE_KEY = "artstore_report_crm_opportunities_columns"
@@ -77,6 +113,17 @@ function slug(value: string) {
   return value.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase()
 }
 
+function opportunityStageBadge(stage: Opportunity["stage"], t: (zh: string, en: string) => string) {
+  const config = {
+    prospecting: { label: t("初步接洽", "Prospecting"), tone: "accent" as const },
+    negotiation: { label: t("谈判中", "Negotiation"), tone: "warning" as const },
+    closed_won: { label: t("已赢单", "Closed won"), tone: "success" as const },
+    closed_lost: { label: t("已丢单", "Closed lost"), tone: "danger" as const },
+  }[stage]
+
+  return <ReportBadge tone={config.tone}>{config.label}</ReportBadge>
+}
+
 function syncUrl(params: Record<string, string | undefined>) {
   const search = new URLSearchParams(window.location.search)
 
@@ -92,6 +139,7 @@ function syncUrl(params: Record<string, string | undefined>) {
 }
 
 const ReportCrmOpportunitiesPage = () => {
+  const { t } = useAdminLanguage()
   const [rows, setRows] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -160,7 +208,7 @@ const ReportCrmOpportunitiesPage = () => {
         }
       } catch (err) {
         if (active) {
-          setError(err instanceof Error ? err.message : "Failed to load opportunities")
+          setError(err instanceof Error ? err.message : t("商机报表加载失败", "Failed to load opportunities"))
         }
       } finally {
         if (active) {
@@ -275,7 +323,7 @@ const ReportCrmOpportunitiesPage = () => {
     link.click()
     link.remove()
     URL.revokeObjectURL(url)
-    showNotice("CSV prepared", "success")
+    showNotice(t("CSV 已生成", "CSV prepared"), "success")
   }
 
   const clearFilters = () => {
@@ -289,58 +337,58 @@ const ReportCrmOpportunitiesPage = () => {
   const copyCurrentLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href)
-      showNotice("Link copied", "success")
+      showNotice(t("链接已复制", "Link copied"), "success")
     } catch {
-      showNotice("Copy failed", "error")
+      showNotice(t("复制失败", "Copy failed"), "error")
     }
   }
 
   const refreshReport = () => {
     setRefreshKey((value) => value + 1)
-    showNotice("Refreshing...", "info", 1200)
+    showNotice(t("正在刷新...", "Refreshing..."), "info", 1200)
   }
 
   return (
     <div style={shellStyle}>
       <ReportHeader
-        title="Opportunity Drill-down"
-        subtitle="Filtered CRM opportunity list for report drill-down."
+        title={t("商机报表明细", "Opportunity Drill-down")}
+        subtitle={t("按报表筛选条件展示 CRM 商机明细。", "Filtered CRM opportunity list for report drill-down.")}
         crumbs={[
-          { label: "Reports", href: "/app/reports" },
+          { label: t("报表", "Reports"), href: "/app/reports" },
           { label: "CRM", href: "/app/reports?view=crm" },
-          { label: "Opportunities" },
+          { label: t("商机", "Opportunities") },
         ]}
       />
 
       <div style={panelStyle}>
-        <FilterToolbar onClear={clearFilters}>
+        <FilterToolbar onClear={clearFilters} clearLabel={t("清空筛选", "Clear Filters")}>
           <input
             style={{ ...toolbarInputStyle, minWidth: 260 }}
-            placeholder="Search opportunity"
+            placeholder={t("搜索商机", "Search opportunity")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
           <select style={toolbarInputStyle} value={stage} onChange={(event) => setStage(event.target.value)}>
-            <option value="">All stages</option>
-            <option value="prospecting">prospecting</option>
-            <option value="negotiation">negotiation</option>
-            <option value="closed_won">closed_won</option>
-            <option value="closed_lost">closed_lost</option>
+            <option value="">{t("全部阶段", "All stages")}</option>
+            <option value="prospecting">{t("初步接洽", "Prospecting")}</option>
+            <option value="negotiation">{t("谈判中", "Negotiation")}</option>
+            <option value="closed_won">{t("已赢单", "Closed won")}</option>
+            <option value="closed_lost">{t("已丢单", "Closed lost")}</option>
           </select>
           <select style={toolbarInputStyle} value={sortKey} onChange={(event) => setSortKey(event.target.value as "name" | "stage" | "customer_id")}>
-            <option value="name">Sort by name</option>
-            <option value="stage">Sort by stage</option>
-            <option value="customer_id">Sort by customer</option>
+            <option value="name">{t("按名称排序", "Sort by name")}</option>
+            <option value="stage">{t("按阶段排序", "Sort by stage")}</option>
+            <option value="customer_id">{t("按客户排序", "Sort by customer")}</option>
           </select>
           <select style={toolbarInputStyle} value={sortDir} onChange={(event) => setSortDir(event.target.value as "asc" | "desc")}>
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
+            <option value="asc">{t("升序", "Ascending")}</option>
+            <option value="desc">{t("降序", "Descending")}</option>
           </select>
           <ReportActionBar
             actions={[
-              { key: "export-filtered", label: "Export Filtered CSV", onClick: exportCurrentRows },
-              { key: "copy-link", label: "Copy Filter Link", onClick: copyCurrentLink },
-              { key: "refresh", label: loading ? "Refreshing..." : "Refresh", onClick: refreshReport, disabled: loading },
+              { key: "export-filtered", label: t("导出筛选结果 CSV", "Export Filtered CSV"), onClick: exportCurrentRows },
+              { key: "copy-link", label: t("复制筛选链接", "Copy Filter Link"), onClick: copyCurrentLink },
+              { key: "refresh", label: loading ? t("正在刷新...", "Refreshing...") : t("刷新", "Refresh"), onClick: refreshReport, disabled: loading },
             ]}
             status={
               notice
@@ -355,40 +403,26 @@ const ReportCrmOpportunitiesPage = () => {
         <div style={{ marginBottom: 12 }}>
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between", flexWrap: "wrap" }}>
             <ToolbarToggleGroup
-              label="Visible columns"
+              label={t("显示列", "Visible columns")}
               options={[
-                { key: "stage", label: "Stage", active: columns.includes("stage"), onToggle: () => toggleColumn("stage") },
-                { key: "customer", label: "Customer", active: columns.includes("customer"), onToggle: () => toggleColumn("customer") },
-                { key: "lead", label: "Lead", active: columns.includes("lead"), onToggle: () => toggleColumn("lead") },
-                { key: "expected_close", label: "Expected close", active: columns.includes("expected_close"), onToggle: () => toggleColumn("expected_close") },
-                { key: "amount", label: "Amount", active: columns.includes("amount"), onToggle: () => toggleColumn("amount") },
+                { key: "stage", label: t("阶段", "Stage"), active: columns.includes("stage"), onToggle: () => toggleColumn("stage") },
+                { key: "customer", label: t("客户", "Customer"), active: columns.includes("customer"), onToggle: () => toggleColumn("customer") },
+                { key: "lead", label: t("线索", "Lead"), active: columns.includes("lead"), onToggle: () => toggleColumn("lead") },
+                { key: "expected_close", label: t("预计成交", "Expected close"), active: columns.includes("expected_close"), onToggle: () => toggleColumn("expected_close") },
+                { key: "amount", label: t("金额", "Amount"), active: columns.includes("amount"), onToggle: () => toggleColumn("amount") },
               ]}
             />
             <button type="button" style={toolbarInputStyle} onClick={resetColumns}>
-              Reset Default Columns
+              {t("恢复默认列", "Reset Default Columns")}
             </button>
           </div>
         </div>
-        {loading ? <div>Loading...</div> : null}
+        {loading ? <div>{t("加载中...", "Loading...")}</div> : null}
         {error ? (
-          <div
-            style={{
-              marginBottom: 12,
-              padding: 12,
-              borderRadius: 12,
-              border: "1px solid #f2c7c7",
-              background: "#fdecec",
-              color: "#b42318",
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={errorBannerStyle}>
             <span>{error}</span>
             <button type="button" style={toolbarInputStyle} onClick={refreshReport} disabled={loading}>
-              {loading ? "Refreshing..." : "Retry"}
+              {loading ? t("正在刷新...", "Refreshing...") : t("重试", "Retry")}
             </button>
           </div>
         ) : null}
@@ -396,24 +430,24 @@ const ReportCrmOpportunitiesPage = () => {
           <>
           <ReportSummaryStrip
             items={[
-              { label: "Visible opportunities", value: String(filtered.length) },
-              { label: "Page rows", value: String(pagedRows.length) },
-              { label: "Closed won", value: String(filtered.filter((row) => row.stage === "closed_won").length) },
-              { label: "Estimated amount", value: filtered.reduce((sum, row) => sum + Number(row.estimated_amount || 0), 0).toLocaleString("en-US") },
-              ...(lastUpdatedAt ? [{ label: "Updated", value: new Date(lastUpdatedAt).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" }) }] : []),
+              { label: t("筛选后商机数", "Visible opportunities"), value: String(filtered.length) },
+              { label: t("当前页行数", "Page rows"), value: String(pagedRows.length) },
+              { label: t("已赢单", "Closed won"), value: String(filtered.filter((row) => row.stage === "closed_won").length) },
+              { label: t("预计金额", "Estimated amount"), value: filtered.reduce((sum, row) => sum + Number(row.estimated_amount || 0), 0).toLocaleString("en-US") },
+              ...(lastUpdatedAt ? [{ label: t("更新时间", "Updated"), value: new Date(lastUpdatedAt).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" }) }] : []),
             ]}
           />
           {!pagedRows.length ? (
             <ReportEmptyState
-              title="No opportunities match the current filters"
-              body="Try clearing the stage filter, broadening the search term, or refreshing after recent CRM updates so active deals can appear here."
+              title={t("没有符合当前筛选条件的商机", "No opportunities match the current filters")}
+              body={t("可以尝试清空阶段筛选、扩大搜索范围，或刷新以拉取最新商机。", "Try clearing the stage filter, broadening the search term, or refreshing after recent CRM updates so active deals can appear here.")}
             />
           ) : null}
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 12, fontSize: 13, color: "#607086", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 12, fontSize: 13, flexWrap: "wrap", ...subtleTextStyle }}>
             <span>
-              Showing {filtered.length ? (page - 1) * pageSize + 1 : 0}
+              {t("显示", "Showing")} {filtered.length ? (page - 1) * pageSize + 1 : 0}
               {"-"}
-              {Math.min(page * pageSize, filtered.length)} of {filtered.length}
+              {Math.min(page * pageSize, filtered.length)} {t("共", "of")} {filtered.length}
             </span>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <button
@@ -422,16 +456,16 @@ const ReportCrmOpportunitiesPage = () => {
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
                 disabled={page <= 1}
               >
-                Prev
+                {t("上一页", "Prev")}
               </button>
-              <span>Page {page} / {totalPages}</span>
+              <span>{t("页", "Page")} {page} / {totalPages}</span>
               <button
                 type="button"
                 style={toolbarInputStyle}
                 onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
                 disabled={page >= totalPages}
               >
-                Next
+                {t("下一页", "Next")}
               </button>
             </div>
           </div>
@@ -439,32 +473,32 @@ const ReportCrmOpportunitiesPage = () => {
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
               <thead>
                 <tr>
-                  <th onClick={() => toggleSort("name")} title="Sort by opportunity name" style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: sortKey === "name" ? "#173f8a" : "#607086", borderBottom: "1px solid #e5edf6", ...sortableHeaderStyle }}>
-                    {sortLabel("name", "Name")}
+                  <th onClick={() => toggleSort("name")} title={t("按商机名称排序", "Sort by opportunity name")} style={{ ...tableHeaderBaseStyle, color: sortKey === "name" ? adminTheme.color.primary : adminTheme.color.textMuted, ...sortableHeaderStyle }}>
+                    {sortLabel("name", t("名称", "Name"))}
                   </th>
                   {columns.includes("stage") ? (
-                    <th onClick={() => toggleSort("stage")} title="Sort by opportunity stage" style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: sortKey === "stage" ? "#173f8a" : "#607086", borderBottom: "1px solid #e5edf6", ...sortableHeaderStyle }}>
-                      {sortLabel("stage", "Stage")}
+                    <th onClick={() => toggleSort("stage")} title={t("按商机阶段排序", "Sort by opportunity stage")} style={{ ...tableHeaderBaseStyle, color: sortKey === "stage" ? adminTheme.color.primary : adminTheme.color.textMuted, ...sortableHeaderStyle }}>
+                      {sortLabel("stage", t("阶段", "Stage"))}
                     </th>
                   ) : null}
                   {columns.includes("customer") ? (
-                    <th onClick={() => toggleSort("customer_id")} title="Sort by customer" style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: sortKey === "customer_id" ? "#173f8a" : "#607086", borderBottom: "1px solid #e5edf6", ...sortableHeaderStyle }}>
-                      {sortLabel("customer_id", "Customer")}
+                    <th onClick={() => toggleSort("customer_id")} title={t("按客户排序", "Sort by customer")} style={{ ...tableHeaderBaseStyle, color: sortKey === "customer_id" ? adminTheme.color.primary : adminTheme.color.textMuted, ...sortableHeaderStyle }}>
+                      {sortLabel("customer_id", t("客户", "Customer"))}
                     </th>
                   ) : null}
                   {columns.includes("lead") ? (
-                    <th style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: "#607086", borderBottom: "1px solid #e5edf6" }}>
-                      Lead
+                    <th style={tableHeaderBaseStyle}>
+                      {t("线索", "Lead")}
                     </th>
                   ) : null}
                   {columns.includes("expected_close") ? (
-                    <th style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: "#607086", borderBottom: "1px solid #e5edf6" }}>
-                      Expected Close
+                    <th style={tableHeaderBaseStyle}>
+                      {t("预计成交时间", "Expected Close")}
                     </th>
                   ) : null}
                   {columns.includes("amount") ? (
-                    <th style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: "#607086", borderBottom: "1px solid #e5edf6" }}>
-                      Amount
+                    <th style={tableHeaderBaseStyle}>
+                      {t("金额", "Amount")}
                     </th>
                   ) : null}
                 </tr>
@@ -472,28 +506,28 @@ const ReportCrmOpportunitiesPage = () => {
               <tbody>
                 {pagedRows.map((row) => (
                   <tr key={row.id}>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>
+                    <td style={tableCellStyle}>
                       <a
                         href={`/app/crm?tab=opportunity&q=${encodeURIComponent(row.name)}`}
-                        style={{ color: "#173f8a", textDecoration: "none", display: "inline-block", ...truncatedCellStyle }}
+                        style={{ ...tableLinkStyle, ...truncatedCellStyle }}
                       >
                         {row.name}
                       </a>
                     </td>
                     {columns.includes("stage") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>{row.stage}</td>
+                      <td style={tableCellStyle}>{opportunityStageBadge(row.stage, t)}</td>
                     ) : null}
                     {columns.includes("customer") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8", ...truncatedCellStyle }}>{row.customer_id}</td>
+                      <td style={{ ...tableCellStyle, ...truncatedCellStyle }}>{row.customer_id}</td>
                     ) : null}
                     {columns.includes("lead") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8", ...truncatedCellStyle }}>{row.lead_id || "-"}</td>
+                      <td style={{ ...tableCellStyle, ...truncatedCellStyle }}>{row.lead_id || "-"}</td>
                     ) : null}
                     {columns.includes("expected_close") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>{row.expected_close_date || "-"}</td>
+                      <td style={tableCellStyle}>{row.expected_close_date || "-"}</td>
                     ) : null}
                     {columns.includes("amount") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8", ...truncatedCellStyle }}>{String(row.estimated_amount)}</td>
+                      <td style={{ ...tableCellStyle, ...truncatedCellStyle }}>{String(row.estimated_amount)}</td>
                     ) : null}
                   </tr>
                 ))}
@@ -503,7 +537,7 @@ const ReportCrmOpportunitiesPage = () => {
                       colSpan={1 + (columns.includes("stage") ? 1 : 0) + (columns.includes("customer") ? 1 : 0) + (columns.includes("lead") ? 1 : 0) + (columns.includes("expected_close") ? 1 : 0) + (columns.includes("amount") ? 1 : 0)}
                       style={emptyStateStyle}
                     >
-                      No opportunities matched the current filters. Try clearing stage filters or broadening the search.
+                      {t("没有符合当前筛选条件的商机。请尝试清空阶段筛选或扩大搜索范围。", "No opportunities matched the current filters. Try clearing stage filters or broadening the search.")}
                     </td>
                   </tr>
                 ) : null}
@@ -513,11 +547,13 @@ const ReportCrmOpportunitiesPage = () => {
           </>
         ) : null}
       </div>
+      <AdminLanguageDock />
     </div>
   )
 }
 
 export const config = defineRouteConfig({
+  label: "商机报表",
   rank: 94,
 })
 

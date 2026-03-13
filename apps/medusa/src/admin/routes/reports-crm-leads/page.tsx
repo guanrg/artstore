@@ -1,10 +1,14 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
+import AdminLanguageDock from "../../components/admin-language-dock"
 import FilterToolbar, {
   ToolbarToggleGroup,
   toolbarInputStyle,
 } from "../reports/components/filter-toolbar"
+import { useAdminLanguage } from "../../lib/admin-language"
+import { adminCardStyle, adminTheme } from "../../lib/admin-theme"
 import ReportActionBar from "../reports/components/report-action-bar"
+import ReportBadge from "../reports/components/report-badge"
 import ReportEmptyState from "../reports/components/report-empty-state"
 import ReportHeader from "../reports/components/report-header"
 import ReportSummaryStrip from "../reports/components/report-summary-strip"
@@ -26,12 +30,11 @@ const shellStyle: CSSProperties = {
   padding: 16,
   display: "grid",
   gap: 16,
-  background: "#f4f7fb",
+  background: `linear-gradient(180deg, ${adminTheme.color.canvas} 0%, ${adminTheme.color.canvasAlt} 100%)`,
 }
 
 const panelStyle: CSSProperties = {
-  background: "#fff",
-  border: "1px solid #d9e3ef",
+  ...adminCardStyle,
   borderRadius: 16,
   padding: 16,
 }
@@ -46,7 +49,7 @@ const truncatedCellStyle: CSSProperties = {
 const emptyStateStyle: CSSProperties = {
   padding: "32px 12px",
   textAlign: "center",
-  color: "#607086",
+  color: adminTheme.color.textMuted,
   fontSize: 14,
 }
 
@@ -54,6 +57,39 @@ const sortableHeaderStyle: CSSProperties = {
   cursor: "pointer",
   userSelect: "none",
   transition: "color 140ms ease",
+}
+
+const subtleTextStyle: CSSProperties = { color: adminTheme.color.textMuted }
+const errorBannerStyle: CSSProperties = {
+  marginBottom: 12,
+  padding: 12,
+  borderRadius: 12,
+  border: `1px solid ${adminTheme.color.danger}`,
+  background: adminTheme.color.dangerSoft,
+  color: adminTheme.color.danger,
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  alignItems: "center",
+  flexWrap: "wrap",
+}
+const tableHeaderBaseStyle: CSSProperties = {
+  textAlign: "left",
+  padding: "10px 8px",
+  fontSize: 12,
+  color: adminTheme.color.textMuted,
+  borderBottom: `1px solid ${adminTheme.color.border}`,
+  background: adminTheme.color.surfaceMuted,
+}
+const tableCellStyle: CSSProperties = {
+  padding: "10px 8px",
+  borderBottom: `1px solid ${adminTheme.color.border}`,
+  color: adminTheme.color.text,
+}
+const tableLinkStyle: CSSProperties = {
+  color: adminTheme.color.primary,
+  textDecoration: "none",
+  display: "inline-block",
 }
 
 const LEAD_COLUMNS_STORAGE_KEY = "artstore_report_crm_leads_columns"
@@ -77,6 +113,17 @@ function slug(value: string) {
   return value.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase()
 }
 
+function leadStatusBadge(status: Lead["status"], t: (zh: string, en: string) => string) {
+  const config = {
+    new: { label: t("新线索", "New"), tone: "accent" as const },
+    contacted: { label: t("已联系", "Contacted"), tone: "info" as const },
+    qualified: { label: t("已确认", "Qualified"), tone: "success" as const },
+    lost: { label: t("已流失", "Lost"), tone: "danger" as const },
+  }[status]
+
+  return <ReportBadge tone={config.tone}>{config.label}</ReportBadge>
+}
+
 function syncUrl(params: Record<string, string | undefined>) {
   const search = new URLSearchParams(window.location.search)
 
@@ -92,6 +139,7 @@ function syncUrl(params: Record<string, string | undefined>) {
 }
 
 const ReportCrmLeadsPage = () => {
+  const { t } = useAdminLanguage()
   const [rows, setRows] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -160,7 +208,7 @@ const ReportCrmLeadsPage = () => {
         }
       } catch (err) {
         if (active) {
-          setError(err instanceof Error ? err.message : "Failed to load leads")
+          setError(err instanceof Error ? err.message : t("线索报表加载失败", "Failed to load leads"))
         }
       } finally {
         if (active) {
@@ -268,7 +316,7 @@ const ReportCrmLeadsPage = () => {
     link.click()
     link.remove()
     URL.revokeObjectURL(url)
-    showNotice("CSV prepared", "success")
+    showNotice(t("CSV 已生成", "CSV prepared"), "success")
   }
 
   const clearFilters = () => {
@@ -282,58 +330,58 @@ const ReportCrmLeadsPage = () => {
   const copyCurrentLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href)
-      showNotice("Link copied", "success")
+      showNotice(t("链接已复制", "Link copied"), "success")
     } catch {
-      showNotice("Copy failed", "error")
+      showNotice(t("复制失败", "Copy failed"), "error")
     }
   }
 
   const refreshReport = () => {
     setRefreshKey((value) => value + 1)
-    showNotice("Refreshing...", "info", 1200)
+    showNotice(t("正在刷新...", "Refreshing..."), "info", 1200)
   }
 
   return (
     <div style={shellStyle}>
       <ReportHeader
-        title="Lead Drill-down"
-        subtitle="Filtered CRM lead list for report drill-down."
+        title={t("线索报表明细", "Lead Drill-down")}
+        subtitle={t("按报表筛选条件展示 CRM 线索明细。", "Filtered CRM lead list for report drill-down.")}
         crumbs={[
-          { label: "Reports", href: "/app/reports" },
+          { label: t("报表", "Reports"), href: "/app/reports" },
           { label: "CRM", href: "/app/reports?view=crm" },
-          { label: "Leads" },
+          { label: t("线索", "Leads") },
         ]}
       />
 
       <div style={panelStyle}>
-        <FilterToolbar onClear={clearFilters}>
+        <FilterToolbar onClear={clearFilters} clearLabel={t("清空筛选", "Clear Filters")}>
           <input
             style={{ ...toolbarInputStyle, minWidth: 260 }}
-            placeholder="Search lead"
+            placeholder={t("搜索线索", "Search lead")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
           <select style={toolbarInputStyle} value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="">All statuses</option>
-            <option value="new">new</option>
-            <option value="contacted">contacted</option>
-            <option value="qualified">qualified</option>
-            <option value="lost">lost</option>
+            <option value="">{t("全部状态", "All statuses")}</option>
+            <option value="new">{t("新线索", "New")}</option>
+            <option value="contacted">{t("已联系", "Contacted")}</option>
+            <option value="qualified">{t("已确认", "Qualified")}</option>
+            <option value="lost">{t("已流失", "Lost")}</option>
           </select>
           <select style={toolbarInputStyle} value={sortKey} onChange={(event) => setSortKey(event.target.value as "name" | "company" | "status")}>
-            <option value="name">Sort by name</option>
-            <option value="company">Sort by company</option>
-            <option value="status">Sort by status</option>
+            <option value="name">{t("按名称排序", "Sort by name")}</option>
+            <option value="company">{t("按公司排序", "Sort by company")}</option>
+            <option value="status">{t("按状态排序", "Sort by status")}</option>
           </select>
           <select style={toolbarInputStyle} value={sortDir} onChange={(event) => setSortDir(event.target.value as "asc" | "desc")}>
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
+            <option value="asc">{t("升序", "Ascending")}</option>
+            <option value="desc">{t("降序", "Descending")}</option>
           </select>
           <ReportActionBar
             actions={[
-              { key: "export-filtered", label: "Export Filtered CSV", onClick: exportCurrentRows },
-              { key: "copy-link", label: "Copy Filter Link", onClick: copyCurrentLink },
-              { key: "refresh", label: loading ? "Refreshing..." : "Refresh", onClick: refreshReport, disabled: loading },
+              { key: "export-filtered", label: t("导出筛选结果 CSV", "Export Filtered CSV"), onClick: exportCurrentRows },
+              { key: "copy-link", label: t("复制筛选链接", "Copy Filter Link"), onClick: copyCurrentLink },
+              { key: "refresh", label: loading ? t("正在刷新...", "Refreshing...") : t("刷新", "Refresh"), onClick: refreshReport, disabled: loading },
             ]}
             status={
               notice
@@ -348,40 +396,26 @@ const ReportCrmLeadsPage = () => {
         <div style={{ marginBottom: 12 }}>
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between", flexWrap: "wrap" }}>
             <ToolbarToggleGroup
-              label="Visible columns"
+              label={t("显示列", "Visible columns")}
               options={[
-                { key: "email", label: "Email", active: columns.includes("email"), onToggle: () => toggleColumn("email") },
-                { key: "company", label: "Company", active: columns.includes("company"), onToggle: () => toggleColumn("company") },
-                { key: "source", label: "Source", active: columns.includes("source"), onToggle: () => toggleColumn("source") },
-                { key: "status", label: "Status", active: columns.includes("status"), onToggle: () => toggleColumn("status") },
-                { key: "customer", label: "Customer", active: columns.includes("customer"), onToggle: () => toggleColumn("customer") },
+                { key: "email", label: t("邮箱", "Email"), active: columns.includes("email"), onToggle: () => toggleColumn("email") },
+                { key: "company", label: t("公司", "Company"), active: columns.includes("company"), onToggle: () => toggleColumn("company") },
+                { key: "source", label: t("来源", "Source"), active: columns.includes("source"), onToggle: () => toggleColumn("source") },
+                { key: "status", label: t("状态", "Status"), active: columns.includes("status"), onToggle: () => toggleColumn("status") },
+                { key: "customer", label: t("客户", "Customer"), active: columns.includes("customer"), onToggle: () => toggleColumn("customer") },
               ]}
             />
             <button type="button" style={toolbarInputStyle} onClick={resetColumns}>
-              Reset Default Columns
+              {t("恢复默认列", "Reset Default Columns")}
             </button>
           </div>
         </div>
-        {loading ? <div>Loading...</div> : null}
+        {loading ? <div>{t("加载中...", "Loading...")}</div> : null}
         {error ? (
-          <div
-            style={{
-              marginBottom: 12,
-              padding: 12,
-              borderRadius: 12,
-              border: "1px solid #f2c7c7",
-              background: "#fdecec",
-              color: "#b42318",
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={errorBannerStyle}>
             <span>{error}</span>
             <button type="button" style={toolbarInputStyle} onClick={refreshReport} disabled={loading}>
-              {loading ? "Refreshing..." : "Retry"}
+              {loading ? t("正在刷新...", "Refreshing...") : t("重试", "Retry")}
             </button>
           </div>
         ) : null}
@@ -389,24 +423,24 @@ const ReportCrmLeadsPage = () => {
           <>
           <ReportSummaryStrip
             items={[
-              { label: "Visible leads", value: String(filtered.length) },
-              { label: "Page rows", value: String(pagedRows.length) },
-              { label: "Qualified", value: String(filtered.filter((row) => row.status === "qualified").length) },
-              { label: "Lost", value: String(filtered.filter((row) => row.status === "lost").length) },
-              ...(lastUpdatedAt ? [{ label: "Updated", value: new Date(lastUpdatedAt).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" }) }] : []),
+              { label: t("筛选后线索数", "Visible leads"), value: String(filtered.length) },
+              { label: t("当前页行数", "Page rows"), value: String(pagedRows.length) },
+              { label: t("已确认", "Qualified"), value: String(filtered.filter((row) => row.status === "qualified").length) },
+              { label: t("已流失", "Lost"), value: String(filtered.filter((row) => row.status === "lost").length) },
+              ...(lastUpdatedAt ? [{ label: t("更新时间", "Updated"), value: new Date(lastUpdatedAt).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" }) }] : []),
             ]}
           />
           {!pagedRows.length ? (
             <ReportEmptyState
-              title="No leads match the current filters"
-              body="Try clearing the status filter, searching with a broader company or contact name, or refreshing to pick up newer CRM lead activity."
+              title={t("没有符合当前筛选条件的线索", "No leads match the current filters")}
+              body={t("可以尝试清空状态筛选、扩大公司/联系人搜索范围，或刷新以获取最新线索。", "Try clearing the status filter, searching with a broader company or contact name, or refreshing to pick up newer CRM lead activity.")}
             />
           ) : null}
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 12, fontSize: 13, color: "#607086", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 12, fontSize: 13, flexWrap: "wrap", ...subtleTextStyle }}>
             <span>
-              Showing {filtered.length ? (page - 1) * pageSize + 1 : 0}
+              {t("显示", "Showing")} {filtered.length ? (page - 1) * pageSize + 1 : 0}
               {"-"}
-              {Math.min(page * pageSize, filtered.length)} of {filtered.length}
+              {Math.min(page * pageSize, filtered.length)} {t("共", "of")} {filtered.length}
             </span>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <button
@@ -415,16 +449,16 @@ const ReportCrmLeadsPage = () => {
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
                 disabled={page <= 1}
               >
-                Prev
+                {t("上一页", "Prev")}
               </button>
-              <span>Page {page} / {totalPages}</span>
+              <span>{t("页", "Page")} {page} / {totalPages}</span>
               <button
                 type="button"
                 style={toolbarInputStyle}
                 onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
                 disabled={page >= totalPages}
               >
-                Next
+                {t("下一页", "Next")}
               </button>
             </div>
           </div>
@@ -432,32 +466,32 @@ const ReportCrmLeadsPage = () => {
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
               <thead>
                 <tr>
-                  <th onClick={() => toggleSort("name")} title="Sort by lead name" style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: sortKey === "name" ? "#173f8a" : "#607086", borderBottom: "1px solid #e5edf6", ...sortableHeaderStyle }}>
-                    {sortLabel("name", "Name")}
+                  <th onClick={() => toggleSort("name")} title={t("按线索名称排序", "Sort by lead name")} style={{ ...tableHeaderBaseStyle, color: sortKey === "name" ? adminTheme.color.primary : adminTheme.color.textMuted, ...sortableHeaderStyle }}>
+                    {sortLabel("name", t("名称", "Name"))}
                   </th>
                   {columns.includes("email") ? (
-                    <th style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: "#607086", borderBottom: "1px solid #e5edf6" }}>
-                      Email
+                    <th style={tableHeaderBaseStyle}>
+                      {t("邮箱", "Email")}
                     </th>
                   ) : null}
                   {columns.includes("company") ? (
-                    <th onClick={() => toggleSort("company")} title="Sort by company" style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: sortKey === "company" ? "#173f8a" : "#607086", borderBottom: "1px solid #e5edf6", ...sortableHeaderStyle }}>
-                      {sortLabel("company", "Company")}
+                    <th onClick={() => toggleSort("company")} title={t("按公司排序", "Sort by company")} style={{ ...tableHeaderBaseStyle, color: sortKey === "company" ? adminTheme.color.primary : adminTheme.color.textMuted, ...sortableHeaderStyle }}>
+                      {sortLabel("company", t("公司", "Company"))}
                     </th>
                   ) : null}
                   {columns.includes("source") ? (
-                    <th style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: "#607086", borderBottom: "1px solid #e5edf6" }}>
-                      Source
+                    <th style={tableHeaderBaseStyle}>
+                      {t("来源", "Source")}
                     </th>
                   ) : null}
                   {columns.includes("status") ? (
-                    <th onClick={() => toggleSort("status")} title="Sort by lead status" style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: sortKey === "status" ? "#173f8a" : "#607086", borderBottom: "1px solid #e5edf6", ...sortableHeaderStyle }}>
-                      {sortLabel("status", "Status")}
+                    <th onClick={() => toggleSort("status")} title={t("按线索状态排序", "Sort by lead status")} style={{ ...tableHeaderBaseStyle, color: sortKey === "status" ? adminTheme.color.primary : adminTheme.color.textMuted, ...sortableHeaderStyle }}>
+                      {sortLabel("status", t("状态", "Status"))}
                     </th>
                   ) : null}
                   {columns.includes("customer") ? (
-                    <th style={{ textAlign: "left", padding: "10px 8px", fontSize: 12, color: "#607086", borderBottom: "1px solid #e5edf6" }}>
-                      Customer
+                    <th style={tableHeaderBaseStyle}>
+                      {t("客户", "Customer")}
                     </th>
                   ) : null}
                 </tr>
@@ -465,28 +499,28 @@ const ReportCrmLeadsPage = () => {
               <tbody>
                 {pagedRows.map((row) => (
                   <tr key={row.id}>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>
+                    <td style={tableCellStyle}>
                       <a
                         href={`/app/crm?tab=lead&q=${encodeURIComponent(row.name)}`}
-                        style={{ color: "#173f8a", textDecoration: "none", display: "inline-block", ...truncatedCellStyle }}
+                        style={{ ...tableLinkStyle, ...truncatedCellStyle }}
                       >
                         {row.name}
                       </a>
                     </td>
                     {columns.includes("email") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8", ...truncatedCellStyle }}>{row.email}</td>
+                      <td style={{ ...tableCellStyle, ...truncatedCellStyle }}>{row.email}</td>
                     ) : null}
                     {columns.includes("company") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8", ...truncatedCellStyle }}>{row.company}</td>
+                      <td style={{ ...tableCellStyle, ...truncatedCellStyle }}>{row.company}</td>
                     ) : null}
                     {columns.includes("source") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>{row.source}</td>
+                      <td style={tableCellStyle}>{row.source}</td>
                     ) : null}
                     {columns.includes("status") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>{row.status}</td>
+                      <td style={tableCellStyle}>{leadStatusBadge(row.status, t)}</td>
                     ) : null}
                     {columns.includes("customer") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8", ...truncatedCellStyle }}>{row.customer_id || "-"}</td>
+                      <td style={{ ...tableCellStyle, ...truncatedCellStyle }}>{row.customer_id || "-"}</td>
                     ) : null}
                   </tr>
                 ))}
@@ -496,7 +530,7 @@ const ReportCrmLeadsPage = () => {
                       colSpan={1 + (columns.includes("email") ? 1 : 0) + (columns.includes("company") ? 1 : 0) + (columns.includes("source") ? 1 : 0) + (columns.includes("status") ? 1 : 0) + (columns.includes("customer") ? 1 : 0)}
                       style={emptyStateStyle}
                     >
-                      No leads matched the current filters. Try clearing filters or searching for a broader company or name.
+                      {t("没有符合当前筛选条件的线索。请尝试清空筛选或扩大搜索范围。", "No leads matched the current filters. Try clearing filters or searching for a broader company or name.")}
                     </td>
                   </tr>
                 ) : null}
@@ -506,11 +540,13 @@ const ReportCrmLeadsPage = () => {
           </>
         ) : null}
       </div>
+      <AdminLanguageDock />
     </div>
   )
 }
 
 export const config = defineRouteConfig({
+  label: "线索报表",
   rank: 93,
 })
 

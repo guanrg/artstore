@@ -1,10 +1,14 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
+import AdminLanguageDock from "../../components/admin-language-dock"
 import FilterToolbar, {
   ToolbarToggleGroup,
   toolbarInputStyle,
 } from "../reports/components/filter-toolbar"
+import { useAdminLanguage } from "../../lib/admin-language"
+import { adminCardStyle, adminTheme } from "../../lib/admin-theme"
 import ReportActionBar from "../reports/components/report-action-bar"
+import ReportBadge from "../reports/components/report-badge"
 import ReportEmptyState from "../reports/components/report-empty-state"
 import ReportHeader from "../reports/components/report-header"
 import ReportSummaryStrip from "../reports/components/report-summary-strip"
@@ -39,12 +43,11 @@ const shellStyle: CSSProperties = {
   padding: 16,
   display: "grid",
   gap: 16,
-  background: "#f4f7fb",
+  background: `linear-gradient(180deg, ${adminTheme.color.canvas} 0%, ${adminTheme.color.canvasAlt} 100%)`,
 }
 
 const panelStyle: CSSProperties = {
-  background: "#fff",
-  border: "1px solid #d9e3ef",
+  ...adminCardStyle,
   borderRadius: 16,
   padding: 16,
 }
@@ -59,7 +62,7 @@ const truncatedCellStyle: CSSProperties = {
 const emptyStateStyle: CSSProperties = {
   padding: "32px 12px",
   textAlign: "center",
-  color: "#607086",
+  color: adminTheme.color.textMuted,
   fontSize: 14,
 }
 
@@ -67,6 +70,49 @@ const sortableHeaderStyle: CSSProperties = {
   cursor: "pointer",
   userSelect: "none",
   transition: "color 140ms ease",
+}
+
+const metaTextStyle: CSSProperties = {
+  color: adminTheme.color.text,
+}
+
+const subtleTextStyle: CSSProperties = {
+  color: adminTheme.color.textMuted,
+}
+
+const errorBannerStyle: CSSProperties = {
+  marginBottom: 12,
+  padding: 12,
+  borderRadius: 12,
+  border: `1px solid ${adminTheme.color.danger}`,
+  background: adminTheme.color.dangerSoft,
+  color: adminTheme.color.danger,
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  alignItems: "center",
+  flexWrap: "wrap",
+}
+
+const tableHeaderBaseStyle: CSSProperties = {
+  textAlign: "left",
+  fontSize: 12,
+  color: adminTheme.color.textMuted,
+  padding: "10px 8px",
+  borderBottom: `1px solid ${adminTheme.color.border}`,
+  background: adminTheme.color.surfaceMuted,
+}
+
+const tableCellStyle: CSSProperties = {
+  padding: "10px 8px",
+  borderBottom: `1px solid ${adminTheme.color.border}`,
+  color: adminTheme.color.text,
+}
+
+const tableLinkStyle: CSSProperties = {
+  color: adminTheme.color.primary,
+  textDecoration: "none",
+  display: "inline-block",
 }
 
 const ORDER_COLUMNS_STORAGE_KEY = "artstore_report_orders_columns"
@@ -98,6 +144,34 @@ function slug(value: string) {
   return value.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase()
 }
 
+function orderStatusBadge(status: string, isCanceled: boolean, t: (zh: string, en: string) => string) {
+  if (isCanceled) {
+    return <ReportBadge tone="danger">{t("已取消", "Canceled")}</ReportBadge>
+  }
+
+  const normalized = status.toLowerCase()
+
+  if (normalized.includes("complete") || normalized.includes("paid") || normalized.includes("fulfilled")) {
+    return <ReportBadge tone="success">{status}</ReportBadge>
+  }
+
+  if (normalized.includes("pending") || normalized.includes("await")) {
+    return <ReportBadge tone="warning">{status}</ReportBadge>
+  }
+
+  return <ReportBadge tone="info">{status}</ReportBadge>
+}
+
+function refundStateBadge(state: OrderRow["refund_state"], t: (zh: string, en: string) => string) {
+  if (state === "full") {
+    return <ReportBadge tone="danger">{t("全额退款", "Full refund")}</ReportBadge>
+  }
+  if (state === "partial") {
+    return <ReportBadge tone="warning">{t("部分退款", "Partial refund")}</ReportBadge>
+  }
+  return <ReportBadge tone="neutral">{t("无退款", "No refund")}</ReportBadge>
+}
+
 function rangeSlug(range?: Response["range"] | null) {
   if (!range) return "unknown-range"
   return `${range.start.slice(0, 10)}-to-${range.end.slice(0, 10)}`
@@ -124,6 +198,7 @@ function syncUrl(params: Record<string, string | number | undefined>) {
 }
 
 const ReportOrdersPage = () => {
+  const { t } = useAdminLanguage()
   const [data, setData] = useState<Response | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -200,7 +275,7 @@ const ReportOrdersPage = () => {
         }
       } catch (err) {
         if (active) {
-          setError(err instanceof Error ? err.message : "Failed to load orders")
+          setError(err instanceof Error ? err.message : t("订单报表加载失败", "Failed to load orders"))
         }
       } finally {
         if (active) {
@@ -284,7 +359,7 @@ const ReportOrdersPage = () => {
     link.click()
     link.remove()
     URL.revokeObjectURL(url)
-    showNotice("CSV prepared", "success")
+    showNotice(t("CSV 已生成", "CSV prepared"), "success")
   }
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
@@ -355,44 +430,44 @@ const ReportOrdersPage = () => {
   const copyCurrentLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href)
-      showNotice("Link copied", "success")
+      showNotice(t("链接已复制", "Link copied"), "success")
     } catch {
-      showNotice("Copy failed", "error")
+      showNotice(t("复制失败", "Copy failed"), "error")
     }
   }
 
   const refreshReport = () => {
     setRefreshKey((value) => value + 1)
-    showNotice("Refreshing...", "info", 1200)
+    showNotice(t("正在刷新...", "Refreshing..."), "info", 1200)
   }
 
   return (
     <div style={shellStyle}>
       <ReportHeader
-        title="Report Orders"
+        title={t("订单报表明细", "Report Orders")}
         subtitle={
           data
-            ? `${data.range.start.slice(0, 10)} to ${data.range.end.slice(0, 10)}`
-            : "Loading range..."
+            ? t(`${data.range.start.slice(0, 10)} 至 ${data.range.end.slice(0, 10)}`, `${data.range.start.slice(0, 10)} to ${data.range.end.slice(0, 10)}`)
+            : t("正在加载时间范围...", "Loading range...")
         }
         crumbs={[
-          { label: "Reports", href: "/app/reports" },
-          { label: "Orders" },
+          { label: t("报表", "Reports"), href: "/app/reports" },
+          { label: t("订单", "Orders") },
         ]}
         aside={
-          <div style={{ display: "flex", gap: 16, fontSize: 13, color: "#23364e", flexWrap: "wrap" }}>
-            <span>Rows {summary.count}</span>
-            <span>Total {money(summary.total, data?.orders[0]?.currency_code || "aud")}</span>
-            <span>Refunded {money(summary.refunded, data?.orders[0]?.currency_code || "aud")}</span>
+          <div style={{ display: "flex", gap: 16, fontSize: 13, flexWrap: "wrap", ...metaTextStyle }}>
+            <span>{t(`行数 ${summary.count}`, `Rows ${summary.count}`)}</span>
+            <span>{t("总额", "Total")} {money(summary.total, data?.orders[0]?.currency_code || "aud")}</span>
+            <span>{t("退款", "Refunded")} {money(summary.refunded, data?.orders[0]?.currency_code || "aud")}</span>
           </div>
         }
       />
 
       <div style={panelStyle}>
-        <FilterToolbar onClear={clearFilters}>
+        <FilterToolbar onClear={clearFilters} clearLabel={t("清空筛选", "Clear Filters")}>
           <input
             style={{ ...toolbarInputStyle, minWidth: 220 }}
-            placeholder="Search order / customer / status"
+            placeholder={t("搜索订单 / 客户 / 状态", "Search order / customer / status")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -401,19 +476,19 @@ const ReportOrdersPage = () => {
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value as "" | "active" | "canceled")}
           >
-            <option value="">All order states</option>
-            <option value="active">active</option>
-            <option value="canceled">canceled</option>
+            <option value="">{t("全部订单状态", "All order states")}</option>
+            <option value="active">{t("有效", "Active")}</option>
+            <option value="canceled">{t("已取消", "Canceled")}</option>
           </select>
           <select
             style={toolbarInputStyle}
             value={refundFilter}
             onChange={(event) => setRefundFilter(event.target.value as "" | OrderRow["refund_state"])}
           >
-            <option value="">All refunds</option>
-            <option value="none">none</option>
-            <option value="partial">partial</option>
-            <option value="full">full</option>
+            <option value="">{t("全部退款状态", "All refunds")}</option>
+            <option value="none">{t("无退款", "none")}</option>
+            <option value="partial">{t("部分退款", "partial")}</option>
+            <option value="full">{t("全额退款", "full")}</option>
           </select>
           <select
             style={toolbarInputStyle}
@@ -422,23 +497,23 @@ const ReportOrdersPage = () => {
               setSortKey(event.target.value as "created_at" | "total" | "refunded_total")
             }
           >
-            <option value="created_at">Sort by date</option>
-            <option value="total">Sort by total</option>
-            <option value="refunded_total">Sort by refunded</option>
+            <option value="created_at">{t("按日期排序", "Sort by date")}</option>
+            <option value="total">{t("按总额排序", "Sort by total")}</option>
+            <option value="refunded_total">{t("按退款排序", "Sort by refunded")}</option>
           </select>
           <select
             style={toolbarInputStyle}
             value={sortDir}
             onChange={(event) => setSortDir(event.target.value as "asc" | "desc")}
           >
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
+            <option value="desc">{t("降序", "Descending")}</option>
+            <option value="asc">{t("升序", "Ascending")}</option>
           </select>
           <ReportActionBar
             actions={[
-              { key: "export-filtered", label: "Export Filtered CSV", onClick: exportCurrentRows },
-              { key: "copy-link", label: "Copy Filter Link", onClick: copyCurrentLink },
-              { key: "refresh", label: loading ? "Refreshing..." : "Refresh", onClick: refreshReport, disabled: loading },
+              { key: "export-filtered", label: t("导出筛选结果 CSV", "Export Filtered CSV"), onClick: exportCurrentRows },
+              { key: "copy-link", label: t("复制筛选链接", "Copy Filter Link"), onClick: copyCurrentLink },
+              { key: "refresh", label: loading ? t("正在刷新...", "Refreshing...") : t("刷新", "Refresh"), onClick: refreshReport, disabled: loading },
             ]}
             status={
               notice
@@ -453,40 +528,26 @@ const ReportOrdersPage = () => {
         <div style={{ marginBottom: 12 }}>
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between", flexWrap: "wrap" }}>
             <ToolbarToggleGroup
-              label="Visible columns"
+              label={t("显示列", "Visible columns")}
               options={[
-                { key: "status", label: "Status", active: columns.includes("status"), onToggle: () => toggleColumn("status") },
-                { key: "refund", label: "Refund", active: columns.includes("refund"), onToggle: () => toggleColumn("refund") },
-                { key: "customer", label: "Customer", active: columns.includes("customer"), onToggle: () => toggleColumn("customer") },
-                { key: "items", label: "Items", active: columns.includes("items"), onToggle: () => toggleColumn("items") },
-                { key: "refunded", label: "Refunded", active: columns.includes("refunded"), onToggle: () => toggleColumn("refunded") },
+                { key: "status", label: t("状态", "Status"), active: columns.includes("status"), onToggle: () => toggleColumn("status") },
+                { key: "refund", label: t("退款状态", "Refund"), active: columns.includes("refund"), onToggle: () => toggleColumn("refund") },
+                { key: "customer", label: t("客户", "Customer"), active: columns.includes("customer"), onToggle: () => toggleColumn("customer") },
+                { key: "items", label: t("商品件数", "Items"), active: columns.includes("items"), onToggle: () => toggleColumn("items") },
+                { key: "refunded", label: t("退款金额", "Refunded"), active: columns.includes("refunded"), onToggle: () => toggleColumn("refunded") },
               ]}
             />
             <button type="button" style={toolbarInputStyle} onClick={resetColumns}>
-              Reset Default Columns
+              {t("恢复默认列", "Reset Default Columns")}
             </button>
           </div>
         </div>
-        {loading ? <div>Loading...</div> : null}
+        {loading ? <div>{t("加载中...", "Loading...")}</div> : null}
         {error ? (
-          <div
-            style={{
-              marginBottom: 12,
-              padding: 12,
-              borderRadius: 12,
-              border: "1px solid #f2c7c7",
-              background: "#fdecec",
-              color: "#b42318",
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={errorBannerStyle}>
             <span>{error}</span>
             <button type="button" style={toolbarInputStyle} onClick={refreshReport} disabled={loading}>
-              {loading ? "Refreshing..." : "Retry"}
+              {loading ? t("正在刷新...", "Refreshing...") : t("重试", "Retry")}
             </button>
           </div>
         ) : null}
@@ -494,30 +555,30 @@ const ReportOrdersPage = () => {
           <>
           <ReportSummaryStrip
             items={[
-              { label: "Visible rows", value: String(filteredRows.length) },
-              { label: "Page rows", value: String(pagedRows.length) },
+              { label: t("筛选后行数", "Visible rows"), value: String(filteredRows.length) },
+              { label: t("当前页行数", "Page rows"), value: String(pagedRows.length) },
               {
-                label: "Gross total",
+                label: t("销售总额", "Gross total"),
                 value: money(filteredRows.reduce((sum, row) => sum + row.total, 0), data?.orders[0]?.currency_code || "aud"),
               },
               {
-                label: "Refunded total",
+                label: t("退款总额", "Refunded total"),
                 value: money(filteredRows.reduce((sum, row) => sum + row.refunded_total, 0), data?.orders[0]?.currency_code || "aud"),
               },
-              ...(lastUpdatedAt ? [{ label: "Updated", value: new Date(lastUpdatedAt).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" }) }] : []),
+              ...(lastUpdatedAt ? [{ label: t("更新时间", "Updated"), value: new Date(lastUpdatedAt).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" }) }] : []),
             ]}
           />
           {!pagedRows.length ? (
             <ReportEmptyState
-              title="No orders match the current filters"
-              body="Try clearing refund or status filters, broadening the search term, or expanding the date range so more order activity falls into this view."
+              title={t("没有符合当前筛选条件的订单", "No orders match the current filters")}
+              body={t("可以尝试清空退款/状态筛选、放宽搜索条件，或者扩大日期范围。", "Try clearing refund or status filters, broadening the search term, or expanding the date range so more order activity falls into this view.")}
             />
           ) : null}
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 12, fontSize: 13, color: "#607086", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 12, fontSize: 13, flexWrap: "wrap", ...subtleTextStyle }}>
             <span>
-              Showing {filteredRows.length ? (page - 1) * pageSize + 1 : 0}
+              {t("显示", "Showing")} {filteredRows.length ? (page - 1) * pageSize + 1 : 0}
               {"-"}
-              {Math.min(page * pageSize, filteredRows.length)} of {filteredRows.length}
+              {Math.min(page * pageSize, filteredRows.length)} {t("共", "of")} {filteredRows.length}
             </span>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <button
@@ -526,16 +587,16 @@ const ReportOrdersPage = () => {
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
                 disabled={page <= 1}
               >
-                Prev
+                {t("上一页", "Prev")}
               </button>
-              <span>Page {page} / {totalPages}</span>
+              <span>{t("页", "Page")} {page} / {totalPages}</span>
               <button
                 type="button"
                 style={toolbarInputStyle}
                 onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
                 disabled={page >= totalPages}
               >
-                Next
+                {t("下一页", "Next")}
               </button>
             </div>
           </div>
@@ -544,59 +605,59 @@ const ReportOrdersPage = () => {
               <thead>
                 <tr>
                   <th
-                    style={{ textAlign: "left", fontSize: 12, color: "#607086", padding: "10px 8px", borderBottom: "1px solid #e5edf6" }}
+                    style={tableHeaderBaseStyle}
                   >
-                    Order
+                    {t("订单", "Order")}
                   </th>
                   <th
                     onClick={() => toggleSort("created_at")}
-                    title="Sort by created date"
-                    style={{ textAlign: "left", fontSize: 12, color: sortKey === "created_at" ? "#173f8a" : "#607086", padding: "10px 8px", borderBottom: "1px solid #e5edf6", ...sortableHeaderStyle }}
+                    title={t("按创建时间排序", "Sort by created date")}
+                    style={{ ...tableHeaderBaseStyle, color: sortKey === "created_at" ? adminTheme.color.primary : adminTheme.color.textMuted, ...sortableHeaderStyle }}
                   >
-                    {sortLabel("created_at", "Created")}
+                    {sortLabel("created_at", t("创建时间", "Created"))}
                   </th>
                   {columns.includes("status") ? (
                     <th
-                      style={{ textAlign: "left", fontSize: 12, color: "#607086", padding: "10px 8px", borderBottom: "1px solid #e5edf6" }}
+                      style={tableHeaderBaseStyle}
                     >
-                      Status
+                      {t("状态", "Status")}
                     </th>
                   ) : null}
                   {columns.includes("refund") ? (
                     <th
-                      style={{ textAlign: "left", fontSize: 12, color: "#607086", padding: "10px 8px", borderBottom: "1px solid #e5edf6" }}
+                      style={tableHeaderBaseStyle}
                     >
-                      Refund
+                      {t("退款状态", "Refund")}
                     </th>
                   ) : null}
                   {columns.includes("customer") ? (
                     <th
-                      style={{ textAlign: "left", fontSize: 12, color: "#607086", padding: "10px 8px", borderBottom: "1px solid #e5edf6" }}
+                      style={tableHeaderBaseStyle}
                     >
-                      Customer
+                      {t("客户", "Customer")}
                     </th>
                   ) : null}
                   {columns.includes("items") ? (
                     <th
-                      style={{ textAlign: "left", fontSize: 12, color: "#607086", padding: "10px 8px", borderBottom: "1px solid #e5edf6" }}
+                      style={tableHeaderBaseStyle}
                     >
-                      Items
+                      {t("件数", "Items")}
                     </th>
                   ) : null}
                   <th
                     onClick={() => toggleSort("total")}
-                    title="Sort by order total"
-                    style={{ textAlign: "left", fontSize: 12, color: sortKey === "total" ? "#173f8a" : "#607086", padding: "10px 8px", borderBottom: "1px solid #e5edf6", ...sortableHeaderStyle }}
+                    title={t("按订单总额排序", "Sort by order total")}
+                    style={{ ...tableHeaderBaseStyle, color: sortKey === "total" ? adminTheme.color.primary : adminTheme.color.textMuted, ...sortableHeaderStyle }}
                   >
-                    {sortLabel("total", "Total")}
+                    {sortLabel("total", t("总额", "Total"))}
                   </th>
                   {columns.includes("refunded") ? (
                     <th
                       onClick={() => toggleSort("refunded_total")}
-                      title="Sort by refunded total"
-                      style={{ textAlign: "left", fontSize: 12, color: sortKey === "refunded_total" ? "#173f8a" : "#607086", padding: "10px 8px", borderBottom: "1px solid #e5edf6", ...sortableHeaderStyle }}
+                      title={t("按退款金额排序", "Sort by refunded total")}
+                      style={{ ...tableHeaderBaseStyle, color: sortKey === "refunded_total" ? adminTheme.color.primary : adminTheme.color.textMuted, ...sortableHeaderStyle }}
                     >
-                      {sortLabel("refunded_total", "Refunded")}
+                      {sortLabel("refunded_total", t("退款", "Refunded"))}
                     </th>
                   ) : null}
                 </tr>
@@ -604,40 +665,40 @@ const ReportOrdersPage = () => {
               <tbody>
                 {pagedRows.map((row) => (
                   <tr key={row.id}>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>
+                    <td style={tableCellStyle}>
                       <a
                         href={`/app/orders/${row.id}`}
-                        style={{ color: "#173f8a", textDecoration: "none", display: "inline-block", ...truncatedCellStyle }}
+                        style={{ ...tableLinkStyle, ...truncatedCellStyle }}
                       >
                         {row.id}
                       </a>
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>
+                    <td style={tableCellStyle}>
                       {row.created_at ? row.created_at.slice(0, 10) : "-"}
                     </td>
                     {columns.includes("status") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>
-                        {row.is_canceled ? "canceled" : row.status}
+                      <td style={tableCellStyle}>
+                        {orderStatusBadge(row.status, row.is_canceled, t)}
                       </td>
                     ) : null}
                     {columns.includes("refund") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>
-                        {row.refund_state}
+                      <td style={tableCellStyle}>
+                        {refundStateBadge(row.refund_state, t)}
                       </td>
                     ) : null}
                     {columns.includes("customer") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8", ...truncatedCellStyle }}>
+                      <td style={{ ...tableCellStyle, ...truncatedCellStyle }}>
                         {row.customer_id || "-"}
                       </td>
                     ) : null}
                     {columns.includes("items") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>{row.item_count}</td>
+                      <td style={tableCellStyle}>{row.item_count}</td>
                     ) : null}
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>
+                    <td style={tableCellStyle}>
                       {money(row.total, row.currency_code)}
                     </td>
                     {columns.includes("refunded") ? (
-                      <td style={{ padding: "10px 8px", borderBottom: "1px solid #eef3f8" }}>
+                      <td style={tableCellStyle}>
                         {money(row.refunded_total, row.currency_code)}
                       </td>
                     ) : null}
@@ -657,7 +718,7 @@ const ReportOrdersPage = () => {
                       }
                       style={emptyStateStyle}
                     >
-                      No orders matched the current filters. Try clearing filters or expanding the date range.
+                      {t("没有符合当前筛选条件的订单。请尝试清空筛选或扩大日期范围。", "No orders matched the current filters. Try clearing filters or expanding the date range.")}
                     </td>
                   </tr>
                 ) : null}
@@ -667,11 +728,13 @@ const ReportOrdersPage = () => {
           </>
         ) : null}
       </div>
+      <AdminLanguageDock />
     </div>
   )
 }
 
 export const config = defineRouteConfig({
+  label: "订单报表",
   rank: 91,
 })
 

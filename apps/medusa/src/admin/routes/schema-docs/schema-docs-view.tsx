@@ -1,4 +1,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react"
+import AdminLanguageDock from "../../components/admin-language-dock"
+import { useAdminLanguage } from "../../lib/admin-language"
+import { adminCardStyle, adminTheme } from "../../lib/admin-theme"
+import ReportHeader from "../reports/components/report-header"
 
 type SchemaRow = {
   table_schema: string
@@ -30,19 +34,20 @@ export type TableCategory =
   | "other"
 
 type SchemaDocsViewProps = {
-  title: string
+  titleZh: string
+  titleEn?: string
   category?: TableCategory
 }
 
 const categoryNav = [
-  { path: "/app/schema-docs", label: "全部" },
-  { path: "/app/schema-users", label: "用户管理" },
-  { path: "/app/schema-catalog", label: "商品库存" },
-  { path: "/app/schema-trade", label: "交易履约" },
-  { path: "/app/schema-pricing", label: "区域税费" },
-  { path: "/app/schema-content", label: "内容管理" },
-  { path: "/app/schema-crm", label: "CRM" },
-  { path: "/app/schema-other", label: "其他" },
+  { path: "/app/schema-docs", labelZh: "全部", labelEn: "All" },
+  { path: "/app/schema-users", labelZh: "用户管理", labelEn: "Users" },
+  { path: "/app/schema-catalog", labelZh: "商品库存", labelEn: "Catalog" },
+  { path: "/app/schema-trade", labelZh: "交易履约", labelEn: "Trade" },
+  { path: "/app/schema-pricing", labelZh: "区域税费", labelEn: "Pricing" },
+  { path: "/app/schema-content", labelZh: "内容管理", labelEn: "Content" },
+  { path: "/app/schema-crm", labelZh: "CRM", labelEn: "CRM" },
+  { path: "/app/schema-other", labelZh: "其他", labelEn: "Other" },
 ]
 
 function getTableAnchorId(schema: string, table: string): string {
@@ -117,20 +122,131 @@ function inferCategory(tableName: string): TableCategory {
 }
 
 const cardStyle: CSSProperties = {
-  border: "1px solid #e5e7eb",
-  borderRadius: 10,
+  ...adminCardStyle,
+  borderRadius: 14,
   padding: 12,
-  background: "#fff",
 }
 
 const inputStyle: CSSProperties = {
-  border: "1px solid #d1d5db",
+  border: `1px solid ${adminTheme.color.border}`,
   borderRadius: 8,
   padding: "6px 10px",
   fontSize: 13,
+  background: adminTheme.color.surface,
+  color: adminTheme.color.text,
+  boxShadow: adminTheme.shadow.soft,
 }
 
-const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
+const directoryGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
+}
+
+const directoryCardStyle: CSSProperties = {
+  border: `1px solid ${adminTheme.color.border}`,
+  borderRadius: 14,
+  padding: 14,
+  background: `linear-gradient(180deg, ${adminTheme.color.surface} 0%, ${adminTheme.color.surfaceMuted} 100%)`,
+  display: "grid",
+  gap: 8,
+  boxShadow: adminTheme.shadow.soft,
+  transition: "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
+}
+
+function SchemaMark(props: { label: string; active?: boolean }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: 30,
+        height: 30,
+        padding: "0 8px",
+        borderRadius: 999,
+        background: props.active ? adminTheme.color.accentSoft : adminTheme.color.primarySoft,
+        color: props.active ? adminTheme.color.accent : adminTheme.color.primary,
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: "0.04em",
+      }}
+    >
+      {props.label}
+    </span>
+  )
+}
+
+function SchemaCategoryCard(props: {
+  title: string
+  description: string
+  href: string
+  active?: boolean
+  statusLabel: string
+  openLabel: string
+  icon: string
+}) {
+  return (
+    <a
+      href={props.href}
+      onMouseEnter={(event) => {
+        const node = event.currentTarget
+        node.style.transform = "translateY(-2px)"
+        node.style.boxShadow = adminTheme.shadow.focus
+        node.style.borderColor = adminTheme.color.primary
+      }}
+      onMouseLeave={(event) => {
+        const node = event.currentTarget
+        node.style.transform = ""
+        node.style.boxShadow = props.active ? adminTheme.shadow.focus : adminTheme.shadow.soft
+        node.style.borderColor = props.active ? adminTheme.color.primary : adminTheme.color.border
+      }}
+      onFocus={(event) => {
+        const node = event.currentTarget
+        node.style.transform = "translateY(-2px)"
+        node.style.boxShadow = adminTheme.shadow.focus
+        node.style.borderColor = adminTheme.color.primary
+      }}
+      onBlur={(event) => {
+        const node = event.currentTarget
+        node.style.transform = ""
+        node.style.boxShadow = props.active ? adminTheme.shadow.focus : adminTheme.shadow.soft
+        node.style.borderColor = props.active ? adminTheme.color.primary : adminTheme.color.border
+      }}
+      style={{
+        ...directoryCardStyle,
+        textDecoration: "none",
+        color: adminTheme.color.text,
+        borderColor: props.active ? adminTheme.color.primary : adminTheme.color.border,
+        boxShadow: props.active ? adminTheme.shadow.focus : adminTheme.shadow.soft,
+      }}
+    >
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}
+      >
+        <div
+          style={{
+            width: 38,
+            height: 4,
+            borderRadius: 999,
+            background: props.active
+              ? `linear-gradient(90deg, ${adminTheme.color.primary} 0%, ${adminTheme.color.accent} 100%)`
+              : adminTheme.color.borderStrong,
+          }}
+        />
+        <SchemaMark label={props.icon} active={props.active} />
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 700 }}>{props.title}</div>
+      <div style={{ fontSize: 12, color: adminTheme.color.textMuted, lineHeight: 1.6 }}>{props.description}</div>
+      <div style={{ fontSize: 12, color: adminTheme.color.primary, fontWeight: 700 }}>
+        {props.active ? props.statusLabel : props.openLabel}
+      </div>
+    </a>
+  )
+}
+
+const SchemaDocsView = ({ titleZh, titleEn, category }: SchemaDocsViewProps) => {
+  const { t } = useAdminLanguage()
   const [rows, setRows] = useState<SchemaRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -159,7 +275,7 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
 
       if (!response.ok) {
         const text = await response.text()
-        throw new Error(text || `Request failed (${response.status})`)
+        throw new Error(text || t(`请求失败（${response.status}）`, `Request failed (${response.status})`))
       }
 
       const data = (await response.json()) as SchemaResponse
@@ -168,11 +284,11 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
       setTableCount(data.table_count || 0)
       setColumnCount(data.column_count || 0)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败")
+      setError(e instanceof Error ? e.message : t("加载失败", "Load failed"))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [language])
 
   useEffect(() => {
     void loadSchema()
@@ -228,14 +344,77 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
     return groups
   }, [filteredRows])
 
+  const categoryCards = useMemo(
+    () =>
+      categoryNav.map((item) => ({
+        ...item,
+        icon:
+          {
+            "/app/schema-docs": "ALL",
+            "/app/schema-users": "USR",
+            "/app/schema-catalog": "CAT",
+            "/app/schema-trade": "TRD",
+            "/app/schema-pricing": "PRC",
+            "/app/schema-content": "CMS",
+            "/app/schema-crm": "CRM",
+            "/app/schema-other": "ETC",
+          }[item.path] ?? "DB",
+        description: t(
+          {
+            "/app/schema-docs": "浏览全部库表定义，适合全局检索和跨模块排查。",
+            "/app/schema-users": "查看用户、客户、权限与身份相关表结构。",
+            "/app/schema-catalog": "查看商品、变体、库存和分类相关表结构。",
+            "/app/schema-trade": "查看订单、购物车、退款、履约与退换货相关表结构。",
+            "/app/schema-pricing": "查看价格、税区、币种、促销和门店相关表结构。",
+            "/app/schema-content": "查看内容、上传、Strapi 与 i18n 相关表结构。",
+            "/app/schema-crm": "查看线索、商机、任务与 CRM 关系表结构。",
+            "/app/schema-other": "查看不属于以上分类的其他系统表结构。",
+          }[item.path] ?? "查看当前分类。",
+          {
+            "/app/schema-docs": "Browse all tables for global lookup and cross-module troubleshooting.",
+            "/app/schema-users": "Inspect user, customer, permission, and identity-related tables.",
+            "/app/schema-catalog": "Inspect products, variants, inventory, and category-related tables.",
+            "/app/schema-trade": "Inspect orders, carts, refunds, fulfillment, and return-related tables.",
+            "/app/schema-pricing": "Inspect pricing, tax, currency, promotion, and store-related tables.",
+            "/app/schema-content": "Inspect content, upload, Strapi, and i18n-related tables.",
+            "/app/schema-crm": "Inspect leads, opportunities, tasks, and CRM relation tables.",
+            "/app/schema-other": "Inspect uncategorized system tables outside the main domains.",
+          }[item.path] ?? "Open this category."
+        ),
+      })),
+    [t]
+  )
+
   let currentGroup = ""
 
   return (
-    <div style={{ padding: 16, display: "grid", gap: 12 }}>
+    <div
+      style={{
+        padding: 16,
+        display: "grid",
+        gap: 12,
+        background: `radial-gradient(circle at top left, ${adminTheme.color.highlight} 0%, transparent 24%), linear-gradient(180deg, ${adminTheme.color.canvas} 0%, ${adminTheme.color.canvasAlt} 100%)`,
+      }}
+    >
       <div style={cardStyle}>
-        <h2 style={{ margin: "0 0 8px 0", fontSize: 18 }}>{title}</h2>
-        <div style={{ fontSize: 13, color: "#4b5563", marginBottom: 10 }}>
-          点击“刷新”即可一键更新当前数据库结构说明。
+        <ReportHeader
+          title={t(titleZh, titleEn ?? titleZh)}
+          crumbs={[
+            { label: t("库表 Schema", "Schema") },
+          ]}
+          aside={
+            <div style={{ display: "grid", gap: 8, justifyItems: "end" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <SchemaMark label="DB" active />
+                <span style={{ fontSize: 12, color: adminTheme.color.textMuted }}>
+                  {t("当前页表", "Visible tables")}: {visibleTableCount} | {t("总表", "Total tables")}: {tableCount} | {t("总字段", "Total columns")}: {columnCount}
+                </span>
+              </div>
+            </div>
+          }
+        />
+        <div style={{ fontSize: 13, color: adminTheme.color.textMuted, marginTop: 10, marginBottom: 10 }}>
+          {t("点击“刷新”即可一键更新当前数据库结构说明。", "Use Refresh to reload the current database schema reference.")}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <button
@@ -243,28 +422,28 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
             onClick={() => void loadSchema()}
             disabled={loading}
             style={{
-              border: "1px solid #1d4ed8",
-              background: "#1d4ed8",
-              color: "#fff",
+              border: `1px solid ${adminTheme.color.primary}`,
+              background: adminTheme.color.primary,
+              color: adminTheme.color.primaryText,
               borderRadius: 8,
               padding: "6px 12px",
               cursor: "pointer",
+              boxShadow: adminTheme.shadow.soft,
             }}
           >
-            {loading ? "更新中..." : "刷新（更新说明）"}
+            {loading ? t("更新中...", "Refreshing...") : t("刷新（更新说明）", "Refresh schema")}
           </button>
-          <span style={{ fontSize: 12, color: "#6b7280" }}>
-            当前页表: {visibleTableCount} | 总表: {tableCount} | 总字段: {columnCount}
-            {generatedAt ? ` | 生成时间: ${new Date(generatedAt).toLocaleString()}` : ""}
+          <span style={{ fontSize: 12, color: adminTheme.color.textMuted }}>
+            {generatedAt ? `${t("生成时间", "Generated")}: ${new Date(generatedAt).toLocaleString()}` : ""}
           </span>
           <a
             href="/admin/custom/er-crm.html"
             target="_blank"
             rel="noreferrer"
             style={{
-              border: "1px solid #2563eb",
-              background: "#eff6ff",
-              color: "#1d4ed8",
+              border: `1px solid ${adminTheme.color.primary}`,
+              background: adminTheme.color.primarySoft,
+              color: adminTheme.color.primary,
               borderRadius: 8,
               padding: "6px 10px",
               fontSize: 12,
@@ -272,16 +451,16 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
               fontWeight: 600,
             }}
           >
-            打开 CRM ER 图（HTML）
+            {t("打开 CRM ER 图（HTML）", "Open CRM ER (HTML)")}
           </a>
           <a
             href="/admin/custom/er-all.html"
             target="_blank"
             rel="noreferrer"
             style={{
-              border: "1px solid #14532d",
-              background: "#f0fdf4",
-              color: "#166534",
+              border: `1px solid ${adminTheme.color.success}`,
+              background: adminTheme.color.successSoft,
+              color: adminTheme.color.success,
               borderRadius: 8,
               padding: "6px 10px",
               fontSize: 12,
@@ -289,41 +468,33 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
               fontWeight: 600,
             }}
           >
-            打开全库 ER 图（HTML）
+            {t("打开全库 ER 图（HTML）", "Open Full ER (HTML)")}
           </a>
         </div>
         {error ? (
-          <div style={{ marginTop: 10, color: "#b91c1c", fontSize: 13 }}>
-            加载失败: {error}
+          <div style={{ marginTop: 10, color: adminTheme.color.danger, fontSize: 13 }}>
+            {t("加载失败", "Load failed")}: {error}
           </div>
         ) : null}
-        <details style={{ marginTop: 10 }}>
-          <summary style={{ cursor: "pointer", fontSize: 13, color: "#334155" }}>
-            分类导航（点击展开）
-          </summary>
-          <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {categoryNav.map((item) => (
-              <button
+        <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: adminTheme.color.text }}>
+            {t("库表分类卡片", "Schema category cards")}
+          </div>
+          <div style={directoryGridStyle}>
+            {categoryCards.map((item) => (
+              <SchemaCategoryCard
                 key={item.path}
-                type="button"
-                onClick={() => {
-                  window.location.assign(item.path)
-                }}
-                style={{
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 8,
-                  padding: "4px 10px",
-                  fontSize: 12,
-                  background: window.location.pathname === item.path ? "#dbeafe" : "#f8fafc",
-                  color: "#0f172a",
-                  cursor: "pointer",
-                }}
-              >
-                {item.label}
-              </button>
+                icon={item.icon}
+                title={t(item.labelZh, item.labelEn)}
+                description={item.description}
+                href={item.path}
+                active={window.location.pathname === item.path}
+                statusLabel={t("当前分类", "Current")}
+                openLabel={t("打开分类", "Open")}
+              />
             ))}
           </div>
-        </details>
+        </div>
         <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
           {tableGroups.map((group) => (
             <button
@@ -335,13 +506,14 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
                 node?.scrollIntoView({ behavior: "smooth", block: "start" })
               }}
               style={{
-                border: "1px solid #93c5fd",
+                border: `1px solid ${adminTheme.color.border}`,
                 borderRadius: 999,
                 padding: "4px 10px",
                 fontSize: 12,
-                background: "#eff6ff",
-                color: "#1e3a8a",
+                background: adminTheme.color.primarySoft,
+                color: adminTheme.color.primary,
                 cursor: "pointer",
+                boxShadow: adminTheme.shadow.soft,
               }}
             >
               {group.label}
@@ -354,13 +526,13 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
             style={inputStyle}
-            placeholder="筛选表名"
+            placeholder={t("筛选表名", "Filter table name")}
             value={tableKeyword}
             onChange={(e) => setTableKeyword(e.target.value)}
           />
           <input
             style={inputStyle}
-            placeholder="筛选字段名/字段注释"
+            placeholder={t("筛选字段名/字段注释", "Filter column / comment")}
             value={columnKeyword}
             onChange={(e) => setColumnKeyword(e.target.value)}
           />
@@ -369,7 +541,7 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
             value={schema}
             onChange={(e) => setSchema(e.target.value)}
           >
-            <option value="">全部 Schema</option>
+            <option value="">{t("全部 Schema", "All schema")}</option>
             {schemas.map((item) => (
               <option key={item} value={item}>
                 {item}
@@ -383,7 +555,15 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
         <table style={{ borderCollapse: "collapse", minWidth: 1100, width: "100%" }}>
           <thead>
             <tr>
-              {["#", "Column", "Data Type", "UDT", "Nullable", "Default", "Column Comment"].map((title) => (
+              {[
+                t("#", "#"),
+                t("字段", "Column"),
+                t("数据类型", "Data Type"),
+                "UDT",
+                t("可空", "Nullable"),
+                t("默认值", "Default"),
+                t("字段注释", "Column Comment"),
+              ].map((title) => (
                 <th
                   key={title}
                   style={{
@@ -393,7 +573,7 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
                     padding: 8,
                     position: "sticky",
                     top: 0,
-                    background: "#f9fafb",
+                    background: adminTheme.color.surfaceMuted,
                     fontSize: 12,
                   }}
                 >
@@ -407,7 +587,7 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
               const group = `${row.table_schema}.${row.table_name}`
               const showGroup = group !== currentGroup
               currentGroup = group
-              const rowBg = rowIndex % 2 === 0 ? "#ffffff" : "#e7f0ff"
+              const rowBg = rowIndex % 2 === 0 ? adminTheme.color.surface : adminTheme.color.surfaceMuted
 
               return (
                 <Fragment key={`${group}.${row.column_name}.${row.ordinal_position}`}>
@@ -417,8 +597,8 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
                         id={getTableAnchorId(row.table_schema, row.table_name)}
                         colSpan={7}
                         style={{
-                          background: "#cfe0ff",
-                          borderBottom: "1px solid #9db8f5",
+                          background: adminTheme.color.primarySoft,
+                          borderBottom: `1px solid ${adminTheme.color.borderStrong}`,
                           padding: "7px 8px",
                           fontSize: 12,
                           fontWeight: 600,
@@ -430,24 +610,24 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
                     </tr>
                   ) : null}
                   <tr>
-                    <td style={{ borderBottom: "1px solid #f3f4f6", padding: 8, fontSize: 12, background: rowBg }}>
+                    <td style={{ borderBottom: `1px solid ${adminTheme.color.border}`, padding: 8, fontSize: 12, background: rowBg }}>
                       {row.ordinal_position}
                     </td>
-                    <td style={{ borderBottom: "1px solid #f3f4f6", padding: 8, fontSize: 12, background: rowBg }}>
+                    <td style={{ borderBottom: `1px solid ${adminTheme.color.border}`, padding: 8, fontSize: 12, background: rowBg }}>
                       {row.column_name}
                     </td>
-                    <td style={{ borderBottom: "1px solid #f3f4f6", padding: 8, fontSize: 12, background: rowBg }}>
+                    <td style={{ borderBottom: `1px solid ${adminTheme.color.border}`, padding: 8, fontSize: 12, background: rowBg }}>
                       {row.data_type}
                     </td>
-                    <td style={{ borderBottom: "1px solid #f3f4f6", padding: 8, fontSize: 12, background: rowBg }}>
+                    <td style={{ borderBottom: `1px solid ${adminTheme.color.border}`, padding: 8, fontSize: 12, background: rowBg }}>
                       {row.udt_name}
                     </td>
-                    <td style={{ borderBottom: "1px solid #f3f4f6", padding: 8, fontSize: 12, background: rowBg }}>
+                    <td style={{ borderBottom: `1px solid ${adminTheme.color.border}`, padding: 8, fontSize: 12, background: rowBg }}>
                       {row.is_nullable}
                     </td>
                     <td
                       style={{
-                        borderBottom: "1px solid #f3f4f6",
+                        borderBottom: `1px solid ${adminTheme.color.border}`,
                         padding: 8,
                         fontSize: 12,
                         maxWidth: 220,
@@ -458,7 +638,7 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
                     >
                       {row.column_default}
                     </td>
-                    <td style={{ borderBottom: "1px solid #f3f4f6", padding: 8, fontSize: 12, background: rowBg }}>
+                    <td style={{ borderBottom: `1px solid ${adminTheme.color.border}`, padding: 8, fontSize: 12, background: rowBg }}>
                       {row.column_comment}
                     </td>
                   </tr>
@@ -468,6 +648,7 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
           </tbody>
         </table>
       </div>
+      <AdminLanguageDock />
     </div>
   )
 }
