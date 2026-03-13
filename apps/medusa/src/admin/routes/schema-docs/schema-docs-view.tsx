@@ -20,7 +20,14 @@ type SchemaResponse = {
   rows: SchemaRow[]
 }
 
-export type TableCategory = "user" | "catalog" | "trade" | "pricing" | "content" | "other"
+export type TableCategory =
+  | "user"
+  | "catalog"
+  | "trade"
+  | "pricing"
+  | "content"
+  | "crm"
+  | "other"
 
 type SchemaDocsViewProps = {
   title: string
@@ -34,6 +41,7 @@ const categoryNav = [
   { path: "/app/schema-trade", label: "交易履约" },
   { path: "/app/schema-pricing", label: "区域税费" },
   { path: "/app/schema-content", label: "内容管理" },
+  { path: "/app/schema-crm", label: "CRM" },
   { path: "/app/schema-other", label: "其他" },
 ]
 
@@ -91,6 +99,18 @@ function inferCategory(tableName: string): TableCategory {
   const contentRules = [/strapi/, /^article\b/, /content/, /upload/, /file/, /component/, /i18n/]
   if (contentRules.some((rule) => rule.test(name))) {
     return "content"
+  }
+
+  const crmRules = [
+    /^crm_/,
+    /\bcrm\b/,
+    /^lead\b/,
+    /^opportunity\b/,
+    /^task\b/,
+    /task_relation/,
+  ]
+  if (crmRules.some((rule) => rule.test(name))) {
+    return "crm"
   }
 
   return "other"
@@ -237,6 +257,40 @@ const SchemaDocsView = ({ title, category }: SchemaDocsViewProps) => {
             当前页表: {visibleTableCount} | 总表: {tableCount} | 总字段: {columnCount}
             {generatedAt ? ` | 生成时间: ${new Date(generatedAt).toLocaleString()}` : ""}
           </span>
+          <a
+            href="/admin/custom/er-crm.html"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              border: "1px solid #2563eb",
+              background: "#eff6ff",
+              color: "#1d4ed8",
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontSize: 12,
+              textDecoration: "none",
+              fontWeight: 600,
+            }}
+          >
+            打开 CRM ER 图（HTML）
+          </a>
+          <a
+            href="/admin/custom/er-all.html"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              border: "1px solid #14532d",
+              background: "#f0fdf4",
+              color: "#166534",
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontSize: 12,
+              textDecoration: "none",
+              fontWeight: 600,
+            }}
+          >
+            打开全库 ER 图（HTML）
+          </a>
         </div>
         {error ? (
           <div style={{ marginTop: 10, color: "#b91c1c", fontSize: 13 }}>

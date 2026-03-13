@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRM ER 图</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --card: #ffffff;
+        --line: #d9e2ef;
+        --text: #1f2a37;
+        --muted: #5b6b80;
+        --accent: #165dff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: linear-gradient(180deg, #eef3ff 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+      .wrap {
+        width: min(1400px, 96vw);
+        margin: 20px auto;
+        display: grid;
+        gap: 12px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 22px;
+      }
+      .sub {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .hint {
+        font-size: 12px;
+        color: #3f4f65;
+        background: #f5f8ff;
+        border: 1px solid #dbe7ff;
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+      .mermaid {
+        overflow: auto;
+      }
+      code {
+        background: #f4f7fc;
+        border-radius: 6px;
+        padding: 2px 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>CRM ER 图（Medusa v2 + 自定义 CRM）</h1>
+        <div class="sub">
+          覆盖你当前项目中的核心 CRM 表：<code>crm_lead</code>、<code>crm_opportunity</code>、<code>crm_task</code>、<code>crm_task_relation</code>，并展示与 Customer 的关系。
+        </div>
+      </div>
+
+      <div class="card hint">
+        如果图没渲染，通常是浏览器拦截外部脚本。可换 Edge 打开，或把 Mermaid 脚本改为本地文件。
+      </div>
+
+      <div class="card">
+        <div class="mermaid">
+          erDiagram
+            CUSTOMER ||--o{ CRM_LEAD : linked
+            CUSTOMER ||--o{ CRM_OPPORTUNITY : linked
+            CUSTOMER ||--o{ CRM_TASK : linked
+
+            CRM_LEAD ||--o{ CRM_OPPORTUNITY : converts_to
+            CRM_TASK ||--o{ CRM_TASK_RELATION : has
+
+            CRM_LEAD {
+              string id PK
+              string name
+              string email
+              string company
+              string source
+              enum status
+              string customer_id
+              datetime created_at
+              datetime updated_at
+            }
+
+            CRM_OPPORTUNITY {
+              string id PK
+              string name
+              decimal estimated_amount
+              string customer_id
+              enum stage
+              datetime expected_close_date
+              string lead_id FK
+              datetime created_at
+              datetime updated_at
+            }
+
+            CRM_TASK {
+              string id PK
+              string title
+              string description
+              enum type
+              enum status
+              enum priority
+              datetime due_date
+              datetime completed_at
+              string owner_id
+              string customer_id
+              datetime created_at
+              datetime updated_at
+            }
+
+            CRM_TASK_RELATION {
+              string id PK
+              string task_id FK
+              string target_type
+              string target_id
+              string relationship
+              datetime created_at
+              datetime updated_at
+            }
+
+            CUSTOMER {
+              string id PK
+              string email
+              string first_name
+              string last_name
+            }
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "default",
+        er: {
+          useMaxWidth: true,
+          layoutDirection: "TB",
+        },
+      });
+    </script>
+  </body>
+</html>

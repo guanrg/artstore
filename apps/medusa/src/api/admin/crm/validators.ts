@@ -151,3 +151,50 @@ export const AdminDeleteTaskRelationsBody = z
   }, {
     message: "Provide relation_ids or targets",
   })
+
+const dateInQuery = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value
+  }
+
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? value : parsed
+}, z.date())
+
+const adminReportRangeSchema = z.object({
+  days: z.preprocess((value) => {
+    if (typeof value === "string") {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : value
+    }
+
+    return value
+  }, z.number().int().min(1).max(365).optional()),
+  start: dateInQuery.optional(),
+  end: dateInQuery.optional(),
+})
+
+export const AdminReportSummaryQuery = adminReportRangeSchema
+  .refine((value) => {
+    if (value.start && value.end) {
+      return value.start <= value.end
+    }
+
+    return true
+  }, {
+    message: "start must be before end",
+  })
+
+export const AdminReportOrdersQuery = adminReportRangeSchema
+  .extend({
+    status: z.enum(["active", "canceled", "refunded"]).optional(),
+  })
+  .refine((value) => {
+    if (value.start && value.end) {
+      return value.start <= value.end
+    }
+
+    return true
+  }, {
+    message: "start must be before end",
+  })

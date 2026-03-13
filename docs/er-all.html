@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>全库 ER 图（可读版）</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --card: #ffffff;
+        --line: #d7e0ee;
+        --text: #1f2937;
+        --muted: #5b6678;
+        --accent: #1d4ed8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: linear-gradient(180deg, #edf3ff 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+      .wrap {
+        width: min(1500px, 98vw);
+        margin: 14px auto;
+        display: grid;
+        gap: 10px;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      h1 { margin: 0; font-size: 20px; }
+      .muted { color: var(--muted); font-size: 12px; margin-top: 6px; }
+      .toolbar {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(140px, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .toolbar-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      label.ctrl {
+        display: grid;
+        gap: 4px;
+        font-size: 12px;
+        color: #475569;
+      }
+      input, select, button {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 13px;
+        background: #fff;
+      }
+      button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+      .check {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #334155;
+        border: 1px solid #dbe6f7;
+        background: #f8fbff;
+        border-radius: 8px;
+        padding: 6px 10px;
+      }
+      .check input { width: 14px; height: 14px; padding: 0; margin: 0; }
+      .stat {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #334155;
+      }
+      .graph-wrap {
+        overflow: auto;
+        min-height: 420px;
+        max-height: 76vh;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #fff;
+      }
+      .graph-wrap .mermaid {
+        min-width: max-content;
+        min-height: max-content;
+        padding: 12px;
+      }
+      .graph-wrap svg {
+        max-width: none !important;
+      }
+      .table-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 10px;
+        padding: 12px;
+      }
+      .table-card {
+        border: 1px solid #dbe6f7;
+        border-radius: 10px;
+        background: #f8fbff;
+        padding: 10px;
+      }
+      .table-card h4 {
+        margin: 0 0 8px 0;
+        font-size: 13px;
+        color: #0f172a;
+        word-break: break-word;
+      }
+      .table-card ul {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 12px;
+        color: #334155;
+      }
+      .table-card li {
+        margin: 2px 0;
+        word-break: break-word;
+      }
+      details summary { cursor: pointer; color: #334155; font-size: 13px; }
+      pre {
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        color: #475569;
+      }
+      @media (max-width: 1100px) {
+        .toolbar { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="panel">
+        <h1>全库 ER 图（可读版）</h1>
+        <div class="muted">
+          默认建议：先选 Schema，再用“焦点表模式（1-hop）”查看某张表周边关系。全量渲染在大库里会很拥挤。
+        </div>
+
+        <div class="toolbar">
+          <label class="ctrl">Schema
+            <select id="schemaFilter"></select>
+          </label>
+          <label class="ctrl">渲染模式
+            <select id="mode">
+              <option value="schema" selected>Schema 全量</option>
+              <option value="focus">焦点表（1-hop）</option>
+              <option value="all">全库全量</option>
+            </select>
+          </label>
+          <label class="ctrl">焦点表（schema.table）
+            <input id="focusTable" placeholder="例如 public.crm_task" />
+          </label>
+          <label class="ctrl">表名过滤（逗号分隔）
+            <input id="tableFilter" placeholder="例如 crm_,order,product" />
+          </label>
+          <label class="ctrl">最大关系数
+            <input id="maxRelations" type="number" min="10" max="8000" value="260" />
+          </label>
+          <label class="ctrl">每表最多字段
+            <input id="maxColumns" type="number" min="1" max="80" value="16" />
+          </label>
+          <label class="ctrl">布局方向
+            <select id="direction">
+              <option value="LR">左右（推荐）</option>
+              <option value="TB">上下</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="toolbar-row">
+          <label class="check"><input id="showColumns" type="checkbox" />显示字段</label>
+          <label class="check"><input id="onlyRelatedTables" type="checkbox" checked />只显示关系涉及的表</label>
+          <label class="check"><input id="includeExternal" type="checkbox" checked />Schema 模式包含跨 Schema 外键</label>
+          <label class="check"><input id="includeLogical" type="checkbox" checked />包含逻辑关系（推断）</label>
+          <button id="renderBtn" class="primary">重新渲染</button>
+        </div>
+        <div class="toolbar-row">
+          <button id="presetCrm">CRM 一键视图</button>
+          <button id="presetTrade">订单交易视图</button>
+          <button id="presetCatalog">商品库存视图</button>
+          <button id="presetUser">用户权限视图</button>
+          <button id="presetPricing">定价税费视图</button>
+          <button id="presetContent">内容 CMS 视图</button>
+          <button id="presetReset">重置视图</button>
+        </div>
+
+        <div class="stat" id="stat"></div>
+      </div>
+
+      <div class="panel">
+        <div id="graph" class="graph-wrap">加载中...</div>
+      </div>
+
+      <div class="panel">
+        <details>
+          <summary>查看 Mermaid 文本（可复制）</summary>
+          <pre id="code"></pre>
+        </details>
+      </div>
+    </div>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+      const el = {
+        schemaFilter: document.getElementById("schemaFilter"),
+        mode: document.getElementById("mode"),
+        focusTable: document.getElementById("focusTable"),
+        tableFilter: document.getElementById("tableFilter"),
+        maxRelations: document.getElementById("maxRelations"),
+        maxColumns: document.getElementById("maxColumns"),
+        direction: document.getElementById("direction"),
+        showColumns: document.getElementById("showColumns"),
+        onlyRelatedTables: document.getElementById("onlyRelatedTables"),
+        includeExternal: document.getElementById("includeExternal"),
+        includeLogical: document.getElementById("includeLogical"),
+        renderBtn: document.getElementById("renderBtn"),
+        presetCrm: document.getElementById("presetCrm"),
+        presetTrade: document.getElementById("presetTrade"),
+        presetCatalog: document.getElementById("presetCatalog"),
+        presetUser: document.getElementById("presetUser"),
+        presetPricing: document.getElementById("presetPricing"),
+        presetContent: document.getElementById("presetContent"),
+        presetReset: document.getElementById("presetReset"),
+        stat: document.getElementById("stat"),
+        graph: document.getElementById("graph"),
+        code: document.getElementById("code"),
+      };
+
+      let raw = null;
+
+      function keyOf(schema, table) {
+        return `${schema}.${table}`;
+      }
+
+      function aliasOf(schema, table) {
+        return `${schema}_${table}`.replace(/[^a-zA-Z0-9_]/g, "_").toUpperCase();
+      }
+
+      function clamp(n, min, max, fallback) {
+        const v = Number(n);
+        if (!Number.isFinite(v)) return fallback;
+        return Math.max(min, Math.min(max, Math.floor(v)));
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function uniqueBy(arr, keyFn) {
+        const seen = new Set();
+        const out = [];
+        for (const item of arr) {
+          const k = keyFn(item);
+          if (seen.has(k)) continue;
+          seen.add(k);
+          out.push(item);
+        }
+        return out;
+      }
+
+      function parseFocusTable(input, selectedSchema) {
+        const value = (input || "").trim();
+        if (!value) return "";
+        if (value.includes(".")) return value;
+        if (selectedSchema) return `${selectedSchema}.${value}`;
+        return value;
+      }
+
+      function groupColumns(rows) {
+        const map = new Map();
+        for (const row of rows) {
+          const k = keyOf(row.table_schema, row.table_name);
+          if (!map.has(k)) {
+            map.set(k, {
+              schema: row.table_schema,
+              table: row.table_name,
+              alias: aliasOf(row.table_schema, row.table_name),
+              columns: [],
+            });
+          }
+          map.get(k).columns.push(row);
+        }
+        return map;
+      }
+
+      function applyRelationScope(relations, options, tableMap) {
+        const { mode, selectedSchema, includeExternal, focusKey } = options;
+
+        let rels = relations.filter((r) => {
+          const from = keyOf(r.table_schema, r.table_name);
+          const to = keyOf(r.foreign_table_schema, r.foreign_table_name);
+          return tableMap.has(from) || tableMap.has(to);
+        });
+
+        if (mode === "schema" && selectedSchema) {
+          rels = rels.filter((r) => {
+            const leftIn = r.table_schema === selectedSchema;
+            const rightIn = r.foreign_table_schema === selectedSchema;
+            if (includeExternal) return leftIn || rightIn;
+            return leftIn && rightIn;
+          });
+        }
+
+        if (mode === "focus" && focusKey) {
+          rels = rels.filter((r) => {
+            const from = keyOf(r.table_schema, r.table_name);
+            const to = keyOf(r.foreign_table_schema, r.foreign_table_name);
+            return from === focusKey || to === focusKey;
+          });
+        }
+        return rels;
+      }
+
+      function pickRelations(relations, options, tableMap) {
+        const { maxRelations } = options;
+        let rels = applyRelationScope(relations, options, tableMap);
+
+        rels = uniqueBy(
+          rels,
+          (r) =>
+            [
+              r.table_schema,
+              r.table_name,
+              r.column_name,
+              r.foreign_table_schema,
+              r.foreign_table_name,
+              r.foreign_column_name,
+              r.constraint_name,
+            ].join("|")
+        );
+
+        rels.sort((a, b) =>
+          `${a.table_schema}.${a.table_name}.${a.column_name}`.localeCompare(
+            `${b.table_schema}.${b.table_name}.${b.column_name}`
+          )
+        );
+
+        return rels.slice(0, maxRelations);
+      }
+
+      function inferRelations(tables) {
+        const keySet = new Set(tables.map((t) => `${t.schema}.${t.table}`));
+        const bySchema = new Map();
+        for (const t of tables) {
+          if (!bySchema.has(t.schema)) bySchema.set(t.schema, new Set());
+          bySchema.get(t.schema).add(t.table);
+        }
+
+        const allTables = new Set(tables.map((t) => t.table));
+
+        const singular = (name) => {
+          if (!name) return name;
+          if (name.endsWith("ies")) return `${name.slice(0, -3)}y`;
+          if (name.endsWith("ses")) return name.slice(0, -2);
+          if (name.endsWith("s") && name.length > 1) return name.slice(0, -1);
+          return name;
+        };
+
+        const plural = (name) => {
+          if (!name) return name;
+          if (name.endsWith("y")) return `${name.slice(0, -1)}ies`;
+          if (name.endsWith("s")) return `${name}es`;
+          return `${name}s`;
+        };
+
+        const resolveTable = (schema, fromTable, baseName) => {
+          const schemaTables = bySchema.get(schema) || new Set();
+          const fromParts = fromTable.split("_");
+          const modulePrefix = fromParts.length > 1 ? fromParts[0] : "";
+          const tablePrefix = fromTable.includes("_") ? fromTable.split("_")[0] : "";
+          const normalizedBase = baseName
+            .replace(/^fk_/, "")
+            .replace(/^ref_/, "")
+            .replace(/^to_/, "")
+            .replace(/^from_/, "")
+            .replace(/^target_/, "");
+          const plain = [normalizedBase, singular(normalizedBase), plural(normalizedBase)];
+          const prefixed = tablePrefix ? [`${tablePrefix}_${normalizedBase}`, `${tablePrefix}_${plural(normalizedBase)}`] : [];
+          const modulePrefixed = modulePrefix
+            ? [`${modulePrefix}_${normalizedBase}`, `${modulePrefix}_${plural(normalizedBase)}`]
+            : [];
+          const commonAliases = {
+            user: ["user", "users", "admin_user", "admin_users", "up_user", "up_users", "customer", "customers"],
+            role: ["role", "roles", "admin_role", "admin_roles", "up_role", "up_roles"],
+            permission: ["permission", "permissions", "admin_permissions", "up_permissions"],
+            order: ["order", "orders"],
+            product: ["product", "products"],
+            variant: ["variant", "variants", "product_variant", "product_variants"],
+            region: ["region", "regions"],
+            store: ["store", "stores"],
+            currency: ["currency", "currencies"],
+            tax: ["tax_rate", "tax_rates", "tax_region", "tax_regions"],
+          };
+          const aliases = commonAliases[singular(normalizedBase)] || [];
+          const candidates = uniqueBy([...prefixed, ...modulePrefixed, ...plain, ...aliases], (x) => x).filter(Boolean);
+          for (const c of candidates) {
+            if (schemaTables.has(c)) return c;
+            if (allTables.has(c)) {
+              const cross = tables.find((t) => t.table === c);
+              if (cross) return `${cross.schema}.${cross.table}`;
+            }
+          }
+          return "";
+        };
+
+        const rels = [];
+        for (const t of tables) {
+          const schema = t.schema;
+          const fromKey = `${schema}.${t.table}`;
+          if (!keySet.has(fromKey)) continue;
+
+          for (const c of t.columns) {
+            const col = (c.column_name || "").toLowerCase();
+            let target = "";
+            let base = "";
+
+            if (col === "created_by_id" || col === "updated_by_id") {
+              target = "admin_users";
+              base = "admin_user";
+            } else if (col.endsWith("_id")) {
+              base = col.replace(/_id$/, "");
+              if (base.startsWith("inv_")) base = base.slice(4);
+              target = resolveTable(schema, t.table, base);
+            }
+
+            if (!target) continue;
+            const isCrossSchema = target.includes(".");
+            const targetSchema = isCrossSchema ? target.split(".")[0] : schema;
+            const targetTable = isCrossSchema ? target.split(".")[1] : target;
+            if (targetTable === t.table && targetSchema === schema) continue;
+
+            rels.push({
+              constraint_name: `inferred_${t.table}_${c.column_name}_${targetTable}`,
+              table_schema: schema,
+              table_name: t.table,
+              column_name: c.column_name,
+              foreign_table_schema: targetSchema,
+              foreign_table_name: targetTable,
+              foreign_column_name: "id",
+              inferred: true,
+            });
+          }
+        }
+        return uniqueBy(
+          rels,
+          (r) =>
+            [
+              r.table_schema,
+              r.table_name,
+              r.column_name,
+              r.foreign_table_schema,
+              r.foreign_table_name,
+              r.foreign_column_name,
+            ].join("|")
+        );
+      }
+
+      function buildGraph(data, opts) {
+        const tableMap = groupColumns(data.columns || []);
+        const tableFilterTerms = (opts.tableFilter || "")
+          .split(",")
+          .map((v) => v.trim().toLowerCase())
+          .filter(Boolean);
+
+        const matchTableFilter = (schema, table) => {
+          if (!tableFilterTerms.length) return true;
+          const full = `${schema}.${table}`.toLowerCase();
+          return tableFilterTerms.some((term) => full.includes(term));
+        };
+        const physicalRels = pickRelations(data.relations || [], opts, tableMap);
+        const logicalRels = opts.includeLogical
+          ? applyRelationScope(inferRelations(Array.from(tableMap.values())), opts, tableMap)
+          : [];
+        const rels = uniqueBy(
+          [...physicalRels, ...logicalRels],
+          (r) =>
+            [
+              r.table_schema,
+              r.table_name,
+              r.column_name,
+              r.foreign_table_schema,
+              r.foreign_table_name,
+              r.foreign_column_name,
+            ].join("|")
+        ).slice(0, opts.maxRelations);
+
+        const involved = new Set();
+        for (const r of rels) {
+          involved.add(keyOf(r.table_schema, r.table_name));
+          involved.add(keyOf(r.foreign_table_schema, r.foreign_table_name));
+        }
+
+        if (opts.mode === "focus" && opts.focusKey) {
+          involved.add(opts.focusKey);
+        }
+
+        let tables = Array.from(tableMap.values());
+
+        if (opts.mode === "schema" && opts.selectedSchema) {
+          tables = tables.filter((t) => t.schema === opts.selectedSchema || involved.has(keyOf(t.schema, t.table)));
+        }
+
+        if (opts.mode === "focus" && opts.focusKey) {
+          tables = tables.filter((t) => involved.has(keyOf(t.schema, t.table)));
+        }
+
+        if (opts.onlyRelatedTables) {
+          tables = tables.filter((t) => involved.has(keyOf(t.schema, t.table)));
+        }
+
+        if (tableFilterTerms.length) {
+          tables = tables.filter((t) => matchTableFilter(t.schema, t.table));
+        }
+
+        tables.sort((a, b) => `${a.schema}.${a.table}`.localeCompare(`${b.schema}.${b.table}`));
+
+        const lines = ["erDiagram"];
+
+        for (const t of tables) {
+          lines.push(`  ${t.alias} {`);
+          if (opts.showColumns) {
+            const cols = t.columns.slice(0, opts.maxColumns);
+            for (const c of cols) {
+              const type = (c.data_type || c.udt_name || "text").replace(/\s+/g, "_");
+              lines.push(`    ${type} ${c.column_name}`);
+            }
+            if (t.columns.length > opts.maxColumns) {
+              lines.push("    text __more_columns__");
+            }
+          } else {
+            lines.push("    text __fields_hidden__");
+          }
+          lines.push("  }");
+        }
+
+        const tableAliasSet = new Set(tables.map((t) => t.alias));
+        let relationCount = 0;
+
+        for (const r of rels) {
+          const parent = aliasOf(r.foreign_table_schema, r.foreign_table_name);
+          const child = aliasOf(r.table_schema, r.table_name);
+          if (
+            !matchTableFilter(r.foreign_table_schema, r.foreign_table_name) &&
+            !matchTableFilter(r.table_schema, r.table_name)
+          ) {
+            continue;
+          }
+          if (!tableAliasSet.has(parent) || !tableAliasSet.has(child)) continue;
+          const label = `${r.table_name}.${r.column_name}${r.inferred ? " (logic)" : ""}`;
+          lines.push(`  ${parent} ||--o{ ${child} : "${label}"`);
+          relationCount += 1;
+        }
+
+        const legend = tables
+          .map((t) => `${t.alias} = ${t.schema}.${t.table}`)
+          .join("\n");
+
+        return {
+          mermaid: lines.join("\n"),
+          tableCount: tables.length,
+          relationCount,
+          legend,
+          tables,
+        };
+      }
+
+      async function loadData() {
+        const response = await fetch("/admin/schema/er", { credentials: "include" });
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || `request failed (${response.status})`);
+        }
+        raw = await response.json();
+      }
+
+      function fillSchemas() {
+        const schemas = Array.from(new Set((raw?.columns || []).map((r) => r.table_schema))).sort();
+        el.schemaFilter.innerHTML = [
+          `<option value="">全部 Schema</option>`,
+          ...schemas.map((s) => `<option value="${s}">${s}</option>`),
+        ].join("");
+
+        if (schemas.includes("public")) {
+          el.schemaFilter.value = "public";
+        }
+      }
+
+      async function render() {
+        if (!raw) return;
+
+        const selectedSchema = el.schemaFilter.value;
+        const mode = el.mode.value;
+        const focusKey = parseFocusTable(el.focusTable.value, selectedSchema);
+
+        const opts = {
+          selectedSchema,
+          mode,
+          focusKey,
+          tableFilter: el.tableFilter.value,
+          includeExternal: el.includeExternal.checked,
+          showColumns: el.showColumns.checked,
+          onlyRelatedTables: el.onlyRelatedTables.checked,
+          includeLogical: el.includeLogical.checked,
+          maxRelations: clamp(el.maxRelations.value, 10, 8000, 260),
+          maxColumns: clamp(el.maxColumns.value, 1, 80, 16),
+        };
+
+        const graph = buildGraph(raw, opts);
+
+        const effectiveDirection = graph.relationCount === 0 ? "TB" : el.direction.value;
+
+        el.stat.textContent = `表 ${graph.tableCount} | 关系 ${graph.relationCount} | 模式 ${mode} | 布局 ${effectiveDirection}${
+          focusKey ? ` | 焦点 ${focusKey}` : ""
+        }`;
+        if (graph.tableCount === 0) {
+          const hint =
+            "当前筛选结果为 0。ER 数据来自 Medusa 的 DATABASE_URL；若 Strapi 使用默认 SQLite（apps/strapi/.tmp/data.db），这里不会出现 CMS 表。";
+          el.graph.innerHTML = `<pre style="color:#92400e;">${hint}</pre>`;
+          el.code.textContent = `# ${hint}`;
+          return;
+        }
+
+        el.code.textContent = `${graph.mermaid}\n\n# Legend\n${graph.legend}`;
+
+        // If there are no relations, use wrapped cards instead of one huge horizontal Mermaid graph.
+        if (graph.relationCount === 0) {
+          const cards = graph.tables
+            .map((t) => {
+              const title = `${t.schema}.${t.table}`;
+              const cols = opts.showColumns
+                ? t.columns
+                    .slice(0, opts.maxColumns)
+                    .map((c) => `<li>${escapeHtml(c.column_name)} <span style="color:#64748b;">(${escapeHtml(c.data_type || c.udt_name || "text")})</span></li>`)
+                    .join("")
+                : `<li style="color:#64748b;">字段已隐藏</li>`;
+              const more =
+                opts.showColumns && t.columns.length > opts.maxColumns
+                  ? `<li style="color:#64748b;">... 还有 ${t.columns.length - opts.maxColumns} 个字段</li>`
+                  : "";
+              return `<article class="table-card"><h4>${escapeHtml(title)}</h4><ul>${cols}${more}</ul></article>`;
+            })
+            .join("");
+          el.graph.innerHTML = `<div class="table-grid">${cards}</div>`;
+          return;
+        }
+
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "default",
+          securityLevel: "loose",
+          maxTextSize: 10000000,
+          er: {
+            useMaxWidth: false,
+            layoutDirection: effectiveDirection,
+          },
+        });
+
+        const id = `er-${Date.now()}`;
+        el.graph.innerHTML = `<div id="${id}" class="mermaid">${graph.mermaid}</div>`;
+
+        try {
+          await mermaid.run({ querySelector: `#${id}` });
+        } catch (e) {
+          el.graph.innerHTML = `<pre style="color:#b91c1c;">渲染失败: ${String(e)}\n\n${graph.mermaid}</pre>`;
+        }
+      }
+
+      const bindRerender = (node) => node && node.addEventListener("change", () => void render());
+
+      el.renderBtn.addEventListener("click", () => void render());
+      bindRerender(el.schemaFilter);
+      bindRerender(el.mode);
+      bindRerender(el.direction);
+      bindRerender(el.showColumns);
+      bindRerender(el.onlyRelatedTables);
+      bindRerender(el.includeExternal);
+      bindRerender(el.includeLogical);
+      bindRerender(el.maxRelations);
+      bindRerender(el.maxColumns);
+      bindRerender(el.tableFilter);
+      el.focusTable.addEventListener("keyup", (e) => {
+        if (e.key === "Enter") {
+          void render();
+        }
+      });
+
+      function applyPreset(kind) {
+        const base = {
+          mode: "schema",
+          schema: "public",
+          focusTable: "",
+          tableFilter: "",
+          maxRelations: "260",
+          maxColumns: "12",
+          direction: "LR",
+          showColumns: false,
+          onlyRelatedTables: true,
+          includeExternal: true,
+          includeLogical: true,
+        };
+
+        const preset = { ...base };
+        if (kind === "crm") {
+          preset.tableFilter = "crm_";
+          preset.maxRelations = "140";
+          preset.maxColumns = "20";
+        } else if (kind === "trade") {
+          preset.tableFilter = "order,cart,payment,fulfillment,shipment,return,claim,reservation,refund";
+        } else if (kind === "catalog") {
+          preset.tableFilter = "product,variant,inventory,stock,category,collection,tag";
+        } else if (kind === "user") {
+          preset.tableFilter = "user,customer,auth,invite,permission,profile";
+        } else if (kind === "pricing") {
+          preset.tableFilter = "price,promotion,region,tax,currency,discount,money";
+        } else if (kind === "content") {
+          preset.schema = "";
+          preset.tableFilter = "strapi,up_,admin_,article,upload,upload_file,upload_folder,files,content,cms,i18n";
+          preset.direction = "TB";
+          preset.onlyRelatedTables = false;
+          preset.includeExternal = true;
+          preset.maxRelations = "260";
+          preset.maxColumns = "20";
+        } else if (kind === "reset") {
+          preset.mode = "focus";
+          preset.focusTable = "";
+          preset.tableFilter = "";
+          preset.maxRelations = "180";
+          preset.maxColumns = "16";
+        }
+
+        el.mode.value = preset.mode;
+        if (Array.from(el.schemaFilter.options).some((o) => o.value === preset.schema)) {
+          el.schemaFilter.value = preset.schema;
+        } else {
+          el.schemaFilter.value = "";
+        }
+        el.focusTable.value = preset.focusTable;
+        el.tableFilter.value = preset.tableFilter;
+        el.maxRelations.value = preset.maxRelations;
+        el.maxColumns.value = preset.maxColumns;
+        el.direction.value = preset.direction;
+        el.showColumns.checked = preset.showColumns;
+        el.onlyRelatedTables.checked = preset.onlyRelatedTables;
+        el.includeExternal.checked = preset.includeExternal;
+        el.includeLogical.checked = preset.includeLogical;
+        void render();
+      }
+
+      el.presetCrm.addEventListener("click", () => applyPreset("crm"));
+      el.presetTrade.addEventListener("click", () => applyPreset("trade"));
+      el.presetCatalog.addEventListener("click", () => applyPreset("catalog"));
+      el.presetUser.addEventListener("click", () => applyPreset("user"));
+      el.presetPricing.addEventListener("click", () => applyPreset("pricing"));
+      el.presetContent.addEventListener("click", () => applyPreset("content"));
+      el.presetReset.addEventListener("click", () => applyPreset("reset"));
+
+      (async () => {
+        try {
+          el.graph.textContent = "正在加载数据库结构...";
+          await loadData();
+          fillSchemas();
+          await render();
+        } catch (e) {
+          el.graph.innerHTML = `<pre style="color:#b91c1c;">加载失败: ${String(e)}</pre>`;
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -3,7 +3,7 @@ import { defineWidgetConfig } from "@medusajs/admin-sdk"
 
 const REASON_KEY = "reason"
 const REASON_AUTH_FAILED = "auth-failed"
-const ENABLE_ADMIN_LOGIN_GUARD = true
+const ENABLE_ADMIN_LOGIN_GUARD = false
 const ADMIN_LOGIN_EMAIL_KEY = "medusa_admin_login_email"
 const ADMIN_LANG_CODE = "zhCN"
 const ADMIN_LANG_RELOAD_KEY = "medusa_admin_lang_reload_once"
@@ -564,7 +564,7 @@ const AdminLoginGuardWidget = () => {
 }
 
 export const config = defineWidgetConfig({
-  zone: ["login.after", "order.list.before"],
+  zone: "order.list.before",
 })
 
 export default AdminLoginGuardWidget

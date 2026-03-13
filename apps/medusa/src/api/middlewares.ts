@@ -6,6 +6,8 @@ import {
 import {
   AdminListLeadsQuery,
   AdminListOpportunitiesQuery,
+  AdminReportOrdersQuery,
+  AdminReportSummaryQuery,
   AdminListTasksQuery,
   AdminAddTaskRelationsBody,
   AdminConvertLeadBody,
@@ -20,6 +22,26 @@ import {
 
 export default defineMiddlewares({
   routes: [
+    {
+      methods: ["GET"],
+      matcher: "/admin/reports/orders",
+      middlewares: [validateAndTransformQuery(AdminReportOrdersQuery, {})],
+    },
+    {
+      methods: ["GET"],
+      matcher: "/admin/reports/products",
+      middlewares: [validateAndTransformQuery(AdminReportSummaryQuery, {})],
+    },
+    {
+      methods: ["GET"],
+      matcher: "/admin/reports/export",
+      middlewares: [validateAndTransformQuery(AdminReportSummaryQuery, {})],
+    },
+    {
+      methods: ["GET"],
+      matcher: "/admin/reports/summary",
+      middlewares: [validateAndTransformQuery(AdminReportSummaryQuery, {})],
+    },
     {
       methods: ["POST"],
       matcher: "/admin/crm/leads",
