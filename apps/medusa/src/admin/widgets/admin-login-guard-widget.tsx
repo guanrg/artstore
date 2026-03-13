@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import { getAdminLanguage, useAdminLanguage } from "../lib/admin-language"
-import AdminLanguageDock from "../components/admin-language-dock"
-import NativePageHero from "../components/native-page-hero"
-import { patchNativePageLayout } from "../lib/native-page-layout"
 import { adminTheme } from "../lib/admin-theme"
+import { syncAdminRouteBody } from "../lib/native-page-layout"
 
 const REASON_KEY = "reason"
 const REASON_AUTH_FAILED = "auth-failed"
@@ -379,11 +377,7 @@ function useRememberLoginEmail() {
 function useApplyAdminTheme() {
   useEffect(() => {
     const id = "medusa-admin-soft-yellow-theme"
-    if (document.getElementById(id)) {
-      return
-    }
-
-    const style = document.createElement("style")
+    const style = document.getElementById(id) ?? document.createElement("style")
     style.id = id
     style.textContent = `
       body, #root {
@@ -422,14 +416,6 @@ function useApplyAdminTheme() {
       [class*="border-ui-border-interactive"], [class*="border-ui-border-strong"] {
         border-color: ${adminTheme.color.borderStrong} !important;
       }
-      [data-order-page-shell="true"] {
-        background: linear-gradient(135deg, ${adminTheme.color.surfaceMuted} 0%, ${adminTheme.color.primarySoft} 58%, ${adminTheme.color.surface} 100%) !important;
-        border: 1px solid ${adminTheme.color.border} !important;
-        border-radius: ${adminTheme.radius.lg}px !important;
-        box-shadow: ${adminTheme.shadow.card} !important;
-        padding: 14px !important;
-        margin-bottom: 14px !important;
-      }
       body[data-admin-route="orders"] thead th {
         background: ${adminTheme.color.surfaceMuted} !important;
         color: ${adminTheme.color.textMuted} !important;
@@ -453,13 +439,24 @@ function useApplyAdminTheme() {
       body[data-admin-route="orders"] button:not([role="checkbox"]):not([role="radio"]) {
         border-radius: 999px !important;
       }
-      body[data-admin-route="orders"] [data-order-filter-shell="true"] {
-        background: ${adminTheme.color.surface} !important;
-        border: 1px solid ${adminTheme.color.border} !important;
-        border-radius: ${adminTheme.radius.md}px !important;
-        box-shadow: ${adminTheme.shadow.card} !important;
-        padding: 12px !important;
-        margin-bottom: 12px !important;
+      body[data-admin-route="orders"] [class*="text-ui-fg-disabled"] {
+        color: ${adminTheme.color.textMuted} !important;
+        opacity: 0.8 !important;
+      }
+      body[data-admin-route="orders"] tbody td,
+      body[data-admin-route="orders"] thead th {
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
+      }
+      body[data-admin-route="orders"] [class*="pagination"] button,
+      body[data-admin-route="orders"] nav button {
+        border-radius: 999px !important;
+        border-color: ${adminTheme.color.border} !important;
+      }
+      body[data-admin-route="orders"] h1 + p,
+      body[data-admin-route="orders"] h2 + p,
+      body[data-admin-route="orders"] h3 + p {
+        color: ${adminTheme.color.textMuted} !important;
       }
       [data-native-hero-hidden="true"] {
         display: none !important;
@@ -563,29 +560,27 @@ function useApplyAdminTheme() {
         border-color: ${adminTheme.color.primary} !important;
       }
     `
-    document.head.appendChild(style)
+    if (!style.parentElement) {
+      document.head.appendChild(style)
+    }
   }, [])
 }
 
-function useStyleOrderPage() {
+function useSyncOrderListRouteBody() {
   useEffect(() => {
-    const apply = () => {
-      patchNativePageLayout({
-        routePattern: /^\/app\/orders\/?$/,
-        bodyRoute: "orders",
-        heroTitleKeywords: ["order", "订单"],
-        heroShellAttr: "orderPageShell",
-        actionHostKey: "orders-list",
-        filterShellAttr: "orderFilterShell",
-      })
-    }
+    const apply = () => syncAdminRouteBody(/^\/app\/orders\/?$/, "orders")
 
     apply()
     const observer = new MutationObserver(() => apply())
     observer.observe(document.body, { subtree: true, childList: true })
     window.addEventListener("popstate", apply)
     window.addEventListener("hashchange", apply)
-    return () => observer.disconnect()
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("popstate", apply)
+      window.removeEventListener("hashchange", apply)
+    }
   }, [])
 }
 
@@ -622,10 +617,9 @@ const AdminLoginGuardWidget = () => {
   useCustomizeLoginHeading()
   useRememberLoginEmail()
   useApplyAdminTheme()
-  useStyleOrderPage()
+  useSyncOrderListRouteBody()
 
   const isLogin = useMemo(() => /^\/app\/login\/?$/.test(window.location.pathname), [])
-  const isOrderPage = useMemo(() => /^\/app\/orders(\/.*)?$/.test(window.location.pathname), [])
   const [showMessage, setShowMessage] = useState(false)
 
   useEffect(() => {
@@ -646,14 +640,6 @@ const AdminLoginGuardWidget = () => {
 
   return (
     <>
-      {isOrderPage ? (
-        <NativePageHero
-          title={t("订单", "Orders")}
-          pageKey="orders-list"
-        />
-      ) : null}
-      <AdminLanguageDock />
-
       {isLogin && showMessage ? (
         <div
           style={{

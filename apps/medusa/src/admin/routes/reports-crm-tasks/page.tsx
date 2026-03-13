@@ -1,6 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
-import AdminLanguageDock from "../../components/admin-language-dock"
 import FilterToolbar, {
   ToolbarToggleGroup,
   toolbarInputStyle,
@@ -603,7 +602,6 @@ const ReportCrmTasksPage = () => {
           </>
         ) : null}
       </div>
-      <AdminLanguageDock />
     </div>
   )
 }

@@ -1,13 +1,67 @@
 import { useEffect } from "react"
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
-import AdminLanguageDock from "../components/admin-language-dock"
-import NativePageHero from "../components/native-page-hero"
 import { patchNativePageLayout } from "../lib/native-page-layout"
 import { useAdminLanguage } from "../lib/admin-language"
 import { adminTheme } from "../lib/admin-theme"
 
 function isProductDetailsRoute() {
   return /^\/app\/products\/[^/]+\/?$/.test(window.location.pathname)
+}
+
+function useApplyProductDetailsTheme() {
+  useEffect(() => {
+    const id = "medusa-admin-product-details-theme"
+    const style = document.getElementById(id) ?? document.createElement("style")
+    style.id = id
+    style.textContent = `
+      body[data-admin-route="products"] {
+        background: radial-gradient(circle at top left, ${adminTheme.color.highlight} 0%, transparent 22%), linear-gradient(180deg, ${adminTheme.color.canvas} 0%, ${adminTheme.color.canvasAlt} 100%) !important;
+      }
+      body[data-admin-route="products"] [class*="bg-ui-bg-base"],
+      body[data-admin-route="products"] [class*="bg-ui-bg-subtle"],
+      body[data-admin-route="products"] [class*="bg-ui-bg-component"] {
+        background-color: ${adminTheme.color.surface} !important;
+      }
+      body[data-admin-route="products"] [class*="border-ui-border"],
+      body[data-admin-route="products"] [class*="border-ui-border-base"],
+      body[data-admin-route="products"] [class*="border-ui-border-component"] {
+        border-color: ${adminTheme.color.border} !important;
+      }
+      body[data-admin-route="products"] [class*="shadow-elevation-card-rest"],
+      body[data-admin-route="products"] [class*="shadow-borders-base"] {
+        box-shadow: ${adminTheme.shadow.card} !important;
+      }
+      body[data-admin-route="products"] [data-product-page-shell="true"] {
+        background: ${adminTheme.color.surface} !important;
+        border: 1px solid ${adminTheme.color.border} !important;
+        border-radius: ${adminTheme.radius.lg}px !important;
+        box-shadow: ${adminTheme.shadow.card} !important;
+        padding: 14px !important;
+      }
+      body[data-admin-route="products"] input,
+      body[data-admin-route="products"] select,
+      body[data-admin-route="products"] textarea {
+        border-color: ${adminTheme.color.border} !important;
+        border-radius: ${adminTheme.radius.sm}px !important;
+        background: ${adminTheme.color.surface} !important;
+        color: ${adminTheme.color.text} !important;
+        box-shadow: ${adminTheme.shadow.soft} !important;
+      }
+      body[data-admin-route="products"] h1,
+      body[data-admin-route="products"] h2,
+      body[data-admin-route="products"] h3 {
+        color: ${adminTheme.color.text} !important;
+      }
+      body[data-admin-route="products"] h1 + p,
+      body[data-admin-route="products"] h2 + p,
+      body[data-admin-route="products"] h3 + p {
+        color: ${adminTheme.color.textMuted} !important;
+      }
+    `
+    if (!style.parentElement) {
+      document.head.appendChild(style)
+    }
+  }, [])
 }
 
 function findProductHeader() {
@@ -131,6 +185,8 @@ function patchDialogs() {
 const ProductActionsUxWidget = () => {
   const { t } = useAdminLanguage()
 
+  useApplyProductDetailsTheme()
+
   useEffect(() => {
     const run = () => {
       upsertActionButtons({
@@ -158,15 +214,7 @@ const ProductActionsUxWidget = () => {
     return null
   }
 
-  return (
-    <>
-      <NativePageHero
-        title={t("商品", "Products")}
-        pageKey="products-detail"
-      />
-      <AdminLanguageDock />
-    </>
-  )
+  return null
 }
 
 export const config = defineWidgetConfig({

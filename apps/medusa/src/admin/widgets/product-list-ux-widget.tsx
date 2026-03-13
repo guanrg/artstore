@@ -1,9 +1,6 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import { useEffect } from "react"
-import AdminLanguageDock from "../components/admin-language-dock"
-import NativePageHero from "../components/native-page-hero"
-import { patchNativePageLayout } from "../lib/native-page-layout"
-import { useAdminLanguage } from "../lib/admin-language"
+import { syncAdminRouteBody } from "../lib/native-page-layout"
 import { adminTheme } from "../lib/admin-theme"
 
 function isProductListRoute() {
@@ -13,11 +10,7 @@ function isProductListRoute() {
 function useApplyProductTheme() {
   useEffect(() => {
     const id = "medusa-admin-product-theme"
-    if (document.getElementById(id)) {
-      return
-    }
-
-    const style = document.createElement("style")
+    const style = document.getElementById(id) ?? document.createElement("style")
     style.id = id
     style.textContent = `
       body[data-admin-route="products"] {
@@ -76,23 +69,42 @@ function useApplyProductTheme() {
         padding: 12px !important;
         margin-bottom: 12px !important;
       }
+      body[data-admin-route="products"] [data-product-filter-shell="true"] button {
+        font-weight: 700 !important;
+      }
+      body[data-admin-route="products"] [class*="text-ui-fg-muted"],
+      body[data-admin-route="products"] [class*="text-ui-fg-subtle"] {
+        color: ${adminTheme.color.textMuted} !important;
+      }
+      body[data-admin-route="products"] [class*="text-ui-fg-disabled"] {
+        color: ${adminTheme.color.textMuted} !important;
+        opacity: 0.8 !important;
+      }
+      body[data-admin-route="products"] tbody td,
+      body[data-admin-route="products"] thead th {
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
+      }
+      body[data-admin-route="products"] [class*="pagination"] button,
+      body[data-admin-route="products"] nav button {
+        border-radius: 999px !important;
+        border-color: ${adminTheme.color.border} !important;
+      }
+      body[data-admin-route="products"] h1 + p,
+      body[data-admin-route="products"] h2 + p,
+      body[data-admin-route="products"] h3 + p {
+        color: ${adminTheme.color.textMuted} !important;
+      }
     `
-    document.head.appendChild(style)
+    if (!style.parentElement) {
+      document.head.appendChild(style)
+    }
   }, [])
 }
 
-function usePatchProductListPage() {
+function useSyncProductRouteBody() {
   useEffect(() => {
-    const apply = () => {
-      patchNativePageLayout({
-        routePattern: /^\/app\/products\/?$/,
-        bodyRoute: "products",
-        heroTitleKeywords: ["product", "产品", "商品"],
-        heroShellAttr: "productPageShell",
-        actionHostKey: "products-list",
-        filterShellAttr: "productFilterShell",
-      })
-    }
+    const apply = () => syncAdminRouteBody(/^\/app\/products\/?$/, "products")
 
     apply()
     const observer = new MutationObserver(() => apply())
@@ -100,29 +112,23 @@ function usePatchProductListPage() {
     window.addEventListener("popstate", apply)
     window.addEventListener("hashchange", apply)
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("popstate", apply)
+      window.removeEventListener("hashchange", apply)
+    }
   }, [])
 }
 
 const ProductListUxWidget = () => {
-  const { t } = useAdminLanguage()
-
   useApplyProductTheme()
-  usePatchProductListPage()
+  useSyncProductRouteBody()
 
   if (!isProductListRoute()) {
     return null
   }
 
-  return (
-    <>
-      <NativePageHero
-        title={t("商品", "Products")}
-        pageKey="products-list"
-      />
-      <AdminLanguageDock />
-    </>
-  )
+  return null
 }
 
 export const config = defineWidgetConfig({

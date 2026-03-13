@@ -1,6 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import type { CSSProperties } from "react"
-import AdminLanguageDock from "../../components/admin-language-dock"
 import YahooImportForm from "../../components/yahoo-import-form"
 import { useAdminLanguage } from "../../lib/admin-language"
 import { adminTheme } from "../../lib/admin-theme"
@@ -28,7 +27,6 @@ const YahooImportPage = () => {
       />
 
       <YahooImportForm />
-      <AdminLanguageDock />
     </div>
   )
 }

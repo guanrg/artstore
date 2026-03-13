@@ -1,5 +1,4 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react"
-import AdminLanguageDock from "../../components/admin-language-dock"
 import { useAdminLanguage } from "../../lib/admin-language"
 import { adminCardStyle, adminTheme } from "../../lib/admin-theme"
 import ReportHeader from "../reports/components/report-header"
@@ -246,7 +245,7 @@ function SchemaCategoryCard(props: {
 }
 
 const SchemaDocsView = ({ titleZh, titleEn, category }: SchemaDocsViewProps) => {
-  const { t } = useAdminLanguage()
+  const { t, language } = useAdminLanguage()
   const [rows, setRows] = useState<SchemaRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -400,7 +399,7 @@ const SchemaDocsView = ({ titleZh, titleEn, category }: SchemaDocsViewProps) => 
         <ReportHeader
           title={t(titleZh, titleEn ?? titleZh)}
           crumbs={[
-            { label: t("库表 Schema", "Schema") },
+            { label: t("数据库结构", "Database structure") },
           ]}
           aside={
             <div style={{ display: "grid", gap: 8, justifyItems: "end" }}>
@@ -648,7 +647,6 @@ const SchemaDocsView = ({ titleZh, titleEn, category }: SchemaDocsViewProps) => 
           </tbody>
         </table>
       </div>
-      <AdminLanguageDock />
     </div>
   )
 }

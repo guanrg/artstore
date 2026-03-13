@@ -1,25 +1,54 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import { useEffect } from "react"
-import AdminLanguageDock from "../components/admin-language-dock"
-import NativePageHero from "../components/native-page-hero"
-import { patchNativePageLayout } from "../lib/native-page-layout"
-import { useAdminLanguage } from "../lib/admin-language"
+import { syncAdminRouteBody } from "../lib/native-page-layout"
+import { adminTheme } from "../lib/admin-theme"
 
 function isOrderDetailsRoute() {
   return /^\/app\/orders\/[^/]+\/?$/.test(window.location.pathname)
 }
 
-function usePatchOrderDetailsPage() {
+function useApplyOrderDetailsTheme() {
   useEffect(() => {
-    const apply = () => {
-      patchNativePageLayout({
-        routePattern: /^\/app\/orders\/[^/]+\/?$/,
-        bodyRoute: "orders",
-        heroTitleKeywords: ["summary", "timeline", "order", "订单"],
-        heroShellAttr: "orderPageShell",
-        actionHostKey: "orders-detail",
-      })
+    const id = "medusa-admin-order-details-theme"
+    const style = document.getElementById(id) ?? document.createElement("style")
+    style.id = id
+    style.textContent = `
+      body[data-admin-route="orders"] [data-order-page-shell="true"] {
+        background: ${adminTheme.color.surface} !important;
+        border: 1px solid ${adminTheme.color.border} !important;
+        border-radius: ${adminTheme.radius.lg}px !important;
+        box-shadow: ${adminTheme.shadow.card} !important;
+        padding: 14px !important;
+      }
+      body[data-admin-route="orders"] input,
+      body[data-admin-route="orders"] select,
+      body[data-admin-route="orders"] textarea {
+        border-color: ${adminTheme.color.border} !important;
+        border-radius: ${adminTheme.radius.sm}px !important;
+        background: ${adminTheme.color.surface} !important;
+        color: ${adminTheme.color.text} !important;
+        box-shadow: ${adminTheme.shadow.soft} !important;
+      }
+      body[data-admin-route="orders"] h1,
+      body[data-admin-route="orders"] h2,
+      body[data-admin-route="orders"] h3 {
+        color: ${adminTheme.color.text} !important;
+      }
+      body[data-admin-route="orders"] h1 + p,
+      body[data-admin-route="orders"] h2 + p,
+      body[data-admin-route="orders"] h3 + p {
+        color: ${adminTheme.color.textMuted} !important;
+      }
+    `
+    if (!style.parentElement) {
+      document.head.appendChild(style)
     }
+  }, [])
+}
+
+function useSyncOrderDetailsRouteBody() {
+  useEffect(() => {
+    const apply = () => syncAdminRouteBody(/^\/app\/orders\/[^/]+\/?$/, "orders")
 
     apply()
     const observer = new MutationObserver(() => apply())
@@ -27,28 +56,23 @@ function usePatchOrderDetailsPage() {
     window.addEventListener("popstate", apply)
     window.addEventListener("hashchange", apply)
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("popstate", apply)
+      window.removeEventListener("hashchange", apply)
+    }
   }, [])
 }
 
 const OrderDetailsUxWidget = () => {
-  const { t } = useAdminLanguage()
-
-  usePatchOrderDetailsPage()
+  useApplyOrderDetailsTheme()
+  useSyncOrderDetailsRouteBody()
 
   if (!isOrderDetailsRoute()) {
     return null
   }
 
-  return (
-    <>
-      <NativePageHero
-        title={t("订单", "Order")}
-        pageKey="orders-detail"
-      />
-      <AdminLanguageDock />
-    </>
-  )
+  return null
 }
 
 export const config = defineWidgetConfig({

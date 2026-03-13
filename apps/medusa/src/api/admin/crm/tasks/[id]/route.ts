@@ -156,4 +156,3 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
     sendError(res, error)
   }
 }
-

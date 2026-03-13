@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react"
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react"
 import { adminTheme } from "../../../lib/admin-theme"
 
 type Crumb = {
@@ -17,17 +17,50 @@ const shellStyle: CSSProperties = {
   background: adminTheme.color.surface,
   border: `1px solid ${adminTheme.color.border}`,
   borderRadius: adminTheme.radius.lg,
-  padding: 18,
+  padding: 16,
   display: "grid",
-  gap: 8,
+  gap: 10,
   boxShadow: adminTheme.shadow.card,
+  position: "relative",
+  overflow: "hidden",
 }
 
 const ReportHeader = ({ title, subtitle, crumbs = [], aside }: ReportHeaderProps) => {
+  const shellRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const shell = shellRef.current
+    if (!shell) {
+      return
+    }
+
+    const container = shell.parentElement
+    const previous = container?.previousElementSibling as HTMLElement | null
+    if (!previous) {
+      return
+    }
+
+    const text = (previous.textContent || "").replace(/\s+/g, "")
+    const onlyIconLikeContent = text.length <= 2
+    if (onlyIconLikeContent) {
+      previous.style.display = "none"
+    }
+  }, [])
+
   return (
-    <div style={shellStyle}>
+    <div ref={shellRef} style={shellStyle}>
+      <div
+        style={{
+          position: "absolute",
+          inset: "0 auto auto 0",
+          width: 96,
+          height: 4,
+          background: adminTheme.color.accent,
+          borderBottomRightRadius: 999,
+        }}
+      />
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ display: "grid", gap: 6 }}>
           {crumbs.length ? (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: adminTheme.color.textMuted }}>
               {crumbs.map((crumb, index) => (
@@ -44,8 +77,10 @@ const ReportHeader = ({ title, subtitle, crumbs = [], aside }: ReportHeaderProps
               ))}
             </div>
           ) : null}
-          <h2 style={{ margin: 0, fontSize: 24, lineHeight: 1.15, color: adminTheme.color.text }}>{title}</h2>
-          {subtitle ? <div style={{ fontSize: 13, color: adminTheme.color.textMuted }}>{subtitle}</div> : null}
+          <h2 style={{ margin: 0, fontSize: 30, lineHeight: 1.05, fontWeight: 900, letterSpacing: "-0.03em", color: adminTheme.color.text }}>
+            {title}
+          </h2>
+          {subtitle ? <div style={{ fontSize: 12, color: adminTheme.color.textMuted }}>{subtitle}</div> : null}
         </div>
         {aside ? <div>{aside}</div> : null}
       </div>

@@ -1,6 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
-import AdminLanguageDock from "../../components/admin-language-dock"
 import { useAdminLanguage } from "../../lib/admin-language"
 import { adminCardStyle, adminTheme } from "../../lib/admin-theme"
 import ReportHeader from "./components/report-header"
@@ -1971,7 +1970,6 @@ const ReportsPage = () => {
         </div>
       </div>
       )}
-      <AdminLanguageDock />
     </div>
   )
 }

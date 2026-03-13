@@ -31,7 +31,7 @@ const NativePageHero = ({
     <div style={shellStyle}>
       <div style={cardStyle}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 34, lineHeight: 1.05, fontWeight: 900, color: adminTheme.color.text, letterSpacing: "-0.03em" }}>
+          <div style={{ fontSize: 40, lineHeight: 1, fontWeight: 900, color: adminTheme.color.text, letterSpacing: "-0.04em" }}>
             {title}
           </div>
         </div>

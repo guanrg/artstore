@@ -1,9 +1,6 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import { useEffect } from "react"
-import AdminLanguageDock from "../components/admin-language-dock"
-import NativePageHero from "../components/native-page-hero"
-import { patchNativePageLayout } from "../lib/native-page-layout"
-import { useAdminLanguage } from "../lib/admin-language"
+import { syncAdminRouteBody } from "../lib/native-page-layout"
 import { adminTheme } from "../lib/admin-theme"
 
 function isCustomerListRoute() {
@@ -13,11 +10,7 @@ function isCustomerListRoute() {
 function useApplyCustomerTheme() {
   useEffect(() => {
     const id = "medusa-admin-customer-theme"
-    if (document.getElementById(id)) {
-      return
-    }
-
-    const style = document.createElement("style")
+    const style = document.getElementById(id) ?? document.createElement("style")
     style.id = id
     style.textContent = `
       body[data-admin-route="customers"] {
@@ -60,39 +53,39 @@ function useApplyCustomerTheme() {
       body[data-admin-route="customers"] button:not([role="checkbox"]):not([role="radio"]) {
         border-radius: 999px !important;
       }
-      body[data-admin-route="customers"] [data-customer-page-shell="true"] {
-        background: linear-gradient(135deg, ${adminTheme.color.surfaceMuted} 0%, ${adminTheme.color.primarySoft} 58%, ${adminTheme.color.surface} 100%) !important;
-        border: 1px solid ${adminTheme.color.border} !important;
-        border-radius: ${adminTheme.radius.lg}px !important;
-        box-shadow: ${adminTheme.shadow.card} !important;
-        padding: 14px !important;
-        margin-bottom: 14px !important;
+      body[data-admin-route="customers"] [class*="text-ui-fg-muted"],
+      body[data-admin-route="customers"] [class*="text-ui-fg-subtle"] {
+        color: ${adminTheme.color.textMuted} !important;
       }
-      body[data-admin-route="customers"] [data-customer-filter-shell="true"] {
-        background: ${adminTheme.color.surface} !important;
-        border: 1px solid ${adminTheme.color.border} !important;
-        border-radius: ${adminTheme.radius.md}px !important;
-        box-shadow: ${adminTheme.shadow.card} !important;
-        padding: 12px !important;
-        margin-bottom: 12px !important;
+      body[data-admin-route="customers"] [class*="text-ui-fg-disabled"] {
+        color: ${adminTheme.color.textMuted} !important;
+        opacity: 0.8 !important;
+      }
+      body[data-admin-route="customers"] tbody td,
+      body[data-admin-route="customers"] thead th {
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
+      }
+      body[data-admin-route="customers"] [class*="pagination"] button,
+      body[data-admin-route="customers"] nav button {
+        border-radius: 999px !important;
+        border-color: ${adminTheme.color.border} !important;
+      }
+      body[data-admin-route="customers"] h1 + p,
+      body[data-admin-route="customers"] h2 + p,
+      body[data-admin-route="customers"] h3 + p {
+        color: ${adminTheme.color.textMuted} !important;
       }
     `
-    document.head.appendChild(style)
+    if (!style.parentElement) {
+      document.head.appendChild(style)
+    }
   }, [])
 }
 
-function usePatchCustomerListPage() {
+function useSyncCustomerRouteBody() {
   useEffect(() => {
-    const apply = () => {
-      patchNativePageLayout({
-        routePattern: /^\/app\/customers\/?$/,
-        bodyRoute: "customers",
-        heroTitleKeywords: ["customer", "客户"],
-        heroShellAttr: "customerPageShell",
-        actionHostKey: "customers-list",
-        filterShellAttr: "customerFilterShell",
-      })
-    }
+    const apply = () => syncAdminRouteBody(/^\/app\/customers\/?$/, "customers")
 
     apply()
     const observer = new MutationObserver(() => apply())
@@ -100,29 +93,23 @@ function usePatchCustomerListPage() {
     window.addEventListener("popstate", apply)
     window.addEventListener("hashchange", apply)
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("popstate", apply)
+      window.removeEventListener("hashchange", apply)
+    }
   }, [])
 }
 
 const CustomerListUxWidget = () => {
-  const { t } = useAdminLanguage()
-
   useApplyCustomerTheme()
-  usePatchCustomerListPage()
+  useSyncCustomerRouteBody()
 
   if (!isCustomerListRoute()) {
     return null
   }
 
-  return (
-    <>
-      <NativePageHero
-        title={t("客户", "Customers")}
-        pageKey="customers-list"
-      />
-      <AdminLanguageDock />
-    </>
-  )
+  return null
 }
 
 export const config = defineWidgetConfig({

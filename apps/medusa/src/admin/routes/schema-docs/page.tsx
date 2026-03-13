@@ -6,7 +6,7 @@ const SchemaAllPage = () => {
 }
 
 export const config = defineRouteConfig({
-  label: "库表 Schema",
+  label: "数据库结构",
   rank: 200,
 })
 

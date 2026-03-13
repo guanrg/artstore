@@ -1,6 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { useEffect, useMemo, useState, type CSSProperties, type FocusEvent, type KeyboardEvent } from "react"
-import AdminLanguageDock from "../../components/admin-language-dock"
 import { useAdminLanguage } from "../../lib/admin-language"
 import { adminCardStyle, adminTheme } from "../../lib/admin-theme"
 import ReportHeader from "../reports/components/report-header"
@@ -32,6 +31,8 @@ type Task = {
   type: "todo" | "call" | "email" | "meeting" | "follow_up"
   status: "open" | "in_progress" | "completed" | "canceled"
   priority: "low" | "medium" | "high" | "urgent"
+  start_at?: string | null
+  end_at?: string | null
   due_date?: string | null
   completed_at?: string | null
   owner_id?: string | null
@@ -44,6 +45,21 @@ type TaskRelation = {
   target_type: string
   target_id: string
   relationship: string
+}
+
+type Customer = {
+  id: string
+  email?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  company_name?: string | null
+}
+
+type AdminUser = {
+  id: string
+  email?: string | null
+  first_name?: string | null
+  last_name?: string | null
 }
 
 type CrmTab = "lead" | "opportunity" | "task"
@@ -84,7 +100,7 @@ function badgeStyle(color: string): CSSProperties {
     color,
     background: `${color}1A`,
     border: `1px solid ${color}55`,
-    borderRadius: 999,
+    borderRadius: 12,
     padding: "4px 9px",
   }
 }
@@ -99,7 +115,7 @@ const shellStyle: CSSProperties = {
 const topCardStyle: CSSProperties = {
   ...adminCardStyle,
   background: `linear-gradient(135deg, ${adminTheme.color.surfaceMuted} 0%, ${adminTheme.color.primarySoft} 58%, ${adminTheme.color.surface} 100%)`,
-  borderRadius: 18,
+  borderRadius: 9,
   padding: 14,
 }
 
@@ -112,13 +128,13 @@ const layoutStyle: CSSProperties = {
 
 const panelStyle: CSSProperties = {
   ...adminCardStyle,
-  borderRadius: 16,
+  borderRadius: 8,
   padding: 14,
 }
 
 const listItemBase: CSSProperties = {
   border: `1px solid ${adminTheme.color.border}`,
-  borderRadius: 12,
+  borderRadius: 6,
   padding: 10,
   cursor: "pointer",
   background: adminTheme.color.surface,
@@ -126,19 +142,19 @@ const listItemBase: CSSProperties = {
 }
 
 const inputStyle: CSSProperties = {
-  border: `1px solid ${adminTheme.color.border}`,
-  borderRadius: 10,
+  border: "1px solid #9eb7d8",
+  borderRadius: 5,
   padding: "7px 10px",
   fontSize: 13,
-  background: adminTheme.color.surface,
+  background: "#f3f7fc",
   color: adminTheme.color.text,
-  boxShadow: adminTheme.shadow.soft,
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.75), 0 1px 2px rgba(49, 79, 120, 0.08)",
   width: "100%",
 }
 
 const buttonStyle: CSSProperties = {
   border: `1px solid ${adminTheme.color.border}`,
-  borderRadius: 999,
+  borderRadius: 12,
   padding: "6px 10px",
   fontSize: 12,
   cursor: "pointer",
@@ -217,6 +233,389 @@ const microCardStyle: CSSProperties = {
   padding: "8px 10px",
 }
 
+const fieldStackStyle: CSSProperties = {
+  display: "grid",
+  gap: 6,
+}
+
+const fullWidthFieldStyle: CSSProperties = {
+  gridColumn: "1 / -1",
+}
+
+const pickerWrapStyle: CSSProperties = {
+  display: "grid",
+  position: "relative",
+  alignItems: "start",
+}
+
+const pickerListStyle: CSSProperties = {
+  display: "grid",
+  gap: 6,
+  maxHeight: 220,
+  overflow: "auto",
+  border: "1px solid #b8d4ff",
+  borderRadius: 6,
+  background: "#eef5ff",
+  padding: 6,
+  position: "absolute",
+  top: "calc(100% + 6px)",
+  left: 0,
+  right: 0,
+  zIndex: 30,
+  boxShadow: adminTheme.shadow.card,
+}
+
+const pickerItemStyle: CSSProperties = {
+  border: "1px solid #c9ddff",
+  borderRadius: 5,
+  padding: "8px 10px",
+  background: "#f7fbff",
+  cursor: "pointer",
+  textAlign: "left",
+}
+
+const pickerClearButtonStyle: CSSProperties = {
+  position: "absolute",
+  top: 7,
+  right: 7,
+  border: "none",
+  background: "transparent",
+  color: adminTheme.color.textMuted,
+  cursor: "pointer",
+  fontSize: 12,
+  fontWeight: 700,
+  padding: "4px 6px",
+  lineHeight: 1,
+}
+
+function customerName(customer?: Customer | null) {
+  if (!customer) return ""
+  const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(" ").trim()
+  return fullName || customer.company_name || customer.email || customer.id
+}
+
+function customerOptionLabel(customer?: Customer | null) {
+  if (!customer) return ""
+  const primary = customerName(customer)
+  const secondary = [customer.company_name, customer.email]
+    .filter(Boolean)
+    .filter((value, index, list) => list.indexOf(value) === index && value !== primary)
+    .join(" / ")
+
+  return secondary ? `${primary} (${secondary})` : primary
+}
+
+function adminUserName(user?: AdminUser | null) {
+  if (!user) return ""
+  const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim()
+  return fullName || user.email || user.id
+}
+
+function adminUserOptionLabel(user?: AdminUser | null) {
+  if (!user) return ""
+  const primary = adminUserName(user)
+  const secondary = [user.email]
+    .filter(Boolean)
+    .filter((value, index, list) => list.indexOf(value) === index && value !== primary)
+    .join(" / ")
+
+  return secondary ? `${primary} (${secondary})` : primary
+}
+
+function leadOptionLabel(lead?: Lead | null) {
+  if (!lead) return ""
+  const secondary = [lead.company, lead.email, lead.id]
+    .filter(Boolean)
+    .filter((value, index, list) => list.indexOf(value) === index && value !== lead.name)
+    .join(" / ")
+
+  return secondary ? `${lead.name} (${secondary})` : lead.name
+}
+
+function opportunityOptionLabel(opportunity?: Opportunity | null) {
+  if (!opportunity) return ""
+  const secondary = [String(opportunity.estimated_amount || ""), opportunity.id]
+    .filter(Boolean)
+    .join(" / ")
+
+  return secondary ? `${opportunity.name} (${secondary})` : opportunity.name
+}
+
+function taskOptionLabel(task?: Task | null) {
+  if (!task) return ""
+  const secondary = [taskTypeLabelStatic(task.type), task.id].filter(Boolean).join(" / ")
+  return secondary ? `${task.title} (${secondary})` : task.title
+}
+
+function taskTypeLabelStatic(type: Task["type"]) {
+  return {
+    todo: "todo",
+    call: "call",
+    email: "email",
+    meeting: "meeting",
+    follow_up: "follow_up",
+  }[type]
+}
+
+function toDateInputValue(value?: string | null) {
+  if (!value) return ""
+  const normalized = String(value).trim()
+  if (!normalized) return ""
+  return normalized.slice(0, 10)
+}
+
+function toDateTimeInputValue(value?: string | null) {
+  if (!value) return ""
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    const normalized = String(value).trim()
+    return normalized.length >= 16 ? normalized.slice(0, 16) : normalized
+  }
+
+  const offset = parsed.getTimezoneOffset()
+  const local = new Date(parsed.getTime() - offset * 60_000)
+  return local.toISOString().slice(0, 16)
+}
+
+function RecordPicker(props: {
+  value: string
+  items: Array<{ id: string }>
+  getLabel: (item: any) => string
+  getSearchText: (item: any) => string
+  onChange: (next: string) => void
+  placeholder: string
+  emptyLabel: string
+  t: (zh: string, en: string) => string
+}) {
+  const selected = props.items.find((item) => item.id === props.value) ?? null
+  const [query, setQuery] = useState("")
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (selected) {
+      setQuery(props.getLabel(selected))
+    } else {
+      setQuery("")
+    }
+  }, [props.value, selected?.id])
+
+  const filtered = useMemo(() => {
+    if (!open) {
+      return []
+    }
+
+    const normalized = query.trim().toLowerCase()
+    if (!normalized) {
+      return props.items.slice(0, 8)
+    }
+
+    return props.items
+      .filter((item) => props.getSearchText(item).toLowerCase().includes(normalized))
+      .slice(0, 8)
+  }, [props.items, props.getSearchText, query, open])
+
+  const showList = open
+
+  return (
+    <div
+      style={pickerWrapStyle}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false)
+          if (selected) {
+            setQuery(props.getLabel(selected))
+          }
+        }
+      }}
+    >
+      <input
+        style={{ ...inputStyle, paddingRight: props.value ? 38 : inputStyle.padding }}
+        placeholder={props.placeholder}
+        name={`crm-record-search-${props.placeholder.replace(/\s+/g, "-").toLowerCase()}`}
+        autoComplete="new-password"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
+        inputMode="search"
+        value={query}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setOpen(true)
+          setQuery(e.target.value)
+          if (props.value) {
+            props.onChange("")
+          }
+        }}
+      />
+      {selected ? (
+        <button
+          type="button"
+          aria-label={props.t("清除", "Clear")}
+          style={pickerClearButtonStyle}
+          onClick={() => {
+            props.onChange("")
+            setQuery("")
+            setOpen(false)
+          }}
+        >
+          ×
+        </button>
+      ) : null}
+      {showList ? (
+        <div style={pickerListStyle}>
+          {filtered.length ? (
+            filtered.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                style={pickerItemStyle}
+                onClick={() => {
+                  props.onChange(item.id)
+                  setQuery(props.getLabel(item))
+                  setOpen(false)
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 700, color: adminTheme.color.text }}>
+                  {props.getLabel(item)}
+                </div>
+              </button>
+            ))
+          ) : (
+            <div style={{ fontSize: 12, color: adminTheme.color.textMuted, padding: "6px 4px" }}>
+              {props.emptyLabel}
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function CustomerPicker(props: {
+  value: string
+  customers: Customer[]
+  onChange: (next: string) => void
+  t: (zh: string, en: string) => string
+}) {
+  const selected = props.customers.find((customer) => customer.id === props.value) ?? null
+  const [query, setQuery] = useState("")
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (selected) {
+      setQuery(customerOptionLabel(selected))
+    } else {
+      setQuery("")
+    }
+  }, [props.value, selected?.id])
+
+  const filtered = useMemo(() => {
+    if (!open) {
+      return []
+    }
+
+    const normalized = query.trim().toLowerCase()
+    if (!normalized) {
+      return props.customers.slice(0, 8)
+    }
+
+    return props.customers
+      .filter((customer) =>
+        [
+          customer.id,
+          customer.email || "",
+          customer.first_name || "",
+          customer.last_name || "",
+          customer.company_name || "",
+          customerName(customer),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalized)
+      )
+      .slice(0, 8)
+  }, [props.customers, query, open])
+
+  const showList = open
+
+  return (
+    <div
+      style={pickerWrapStyle}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false)
+          if (selected) {
+            setQuery(customerOptionLabel(selected))
+          }
+        }
+      }}
+    >
+      <input
+        style={{ ...inputStyle, paddingRight: props.value ? 38 : inputStyle.padding }}
+        placeholder={props.t("搜索客户姓名 / 邮箱 / ID", "Search customer name / email / ID")}
+        name="crm-customer-lookup"
+        autoComplete="new-password"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
+        inputMode="search"
+        value={query}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setOpen(true)
+          setQuery(e.target.value)
+          if (props.value) {
+            props.onChange("")
+          }
+        }}
+      />
+      {selected ? (
+        <button
+          type="button"
+          aria-label={props.t("清除", "Clear")}
+          style={pickerClearButtonStyle}
+          onClick={() => {
+            props.onChange("")
+            setQuery("")
+            setOpen(false)
+          }}
+        >
+          ×
+        </button>
+      ) : null}
+      {showList ? (
+        <div style={pickerListStyle}>
+          {filtered.length ? (
+            filtered.map((customer) => (
+              <button
+                key={customer.id}
+                type="button"
+                style={pickerItemStyle}
+                onClick={() => {
+                  props.onChange(customer.id)
+                  setQuery(customerOptionLabel(customer))
+                  setOpen(false)
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 700, color: adminTheme.color.text }}>
+                  {customerName(customer)}
+                </div>
+                <div style={{ fontSize: 11, color: adminTheme.color.textMuted }}>
+                  {customer.company_name || customer.email || ""}
+                </div>
+              </button>
+            ))
+          ) : (
+            <div style={{ fontSize: 12, color: adminTheme.color.textMuted, padding: "6px 4px" }}>
+              {props.t("没有匹配的客户", "No matching customers")}
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function interactiveListItemHandlers(
   onSelect: () => void,
   selected: boolean
@@ -262,7 +661,7 @@ function ObjectMark(props: { label: string; tone?: "primary" | "success" | "acce
         minWidth: 28,
         height: 28,
         padding: "0 8px",
-        borderRadius: 999,
+        borderRadius: 12,
         background: map.bg,
         color: map.fg,
         fontSize: 11,
@@ -285,6 +684,8 @@ const CrmPage = () => {
   const [leads, setLeads] = useState<Lead[]>([])
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
 
   const [selectedLeadId, setSelectedLeadId] = useState("")
   const [selectedOpportunityId, setSelectedOpportunityId] = useState("")
@@ -334,8 +735,8 @@ const CrmPage = () => {
     type: "todo" as Task["type"],
     status: "open" as Task["status"],
     priority: "medium" as Task["priority"],
-    due_date: "",
-    completed_at: "",
+    start_at: "",
+    end_at: "",
     owner_id: "",
     customer_id: "",
   })
@@ -357,6 +758,10 @@ const CrmPage = () => {
   const selectedTask = useMemo(
     () => tasks.find((v) => v.id === selectedTaskId) ?? null,
     [tasks, selectedTaskId]
+  )
+  const customerById = useMemo(
+    () => new Map(customers.map((customer) => [customer.id, customer])),
+    [customers]
   )
 
   const leadStatusLabel = (status: Lead["status"]) =>
@@ -458,9 +863,12 @@ const CrmPage = () => {
     return opportunities.filter(
       (v) =>
         (!opportunityStageFilter || v.stage === opportunityStageFilter) &&
-        (!q || v.name.toLowerCase().includes(q) || v.customer_id.toLowerCase().includes(q))
+        (!q ||
+          v.name.toLowerCase().includes(q) ||
+          v.customer_id.toLowerCase().includes(q) ||
+          customerOptionLabel(customerById.get(v.customer_id) ?? null).toLowerCase().includes(q))
     )
-  }, [opportunities, opportunitySearch, opportunityStageFilter])
+  }, [opportunities, opportunitySearch, opportunityStageFilter, customerById])
 
   const filteredTasks = useMemo(() => {
     const q = taskSearch.trim().toLowerCase()
@@ -568,6 +976,16 @@ const CrmPage = () => {
     setLeads(data.leads || [])
   }
 
+  const loadCustomers = async () => {
+    const data = await api<{ customers: Customer[] }>("/admin/customers?limit=200&offset=0")
+    setCustomers(data.customers || [])
+  }
+
+  const loadAdminUsers = async () => {
+    const data = await api<{ users: AdminUser[] }>("/admin/users?limit=200&offset=0")
+    setAdminUsers(data.users || [])
+  }
+
   const loadOpportunities = async () => {
     const data = await api<{ opportunities: Opportunity[] }>(
       "/admin/crm/opportunities?limit=200&offset=0"
@@ -608,6 +1026,16 @@ const CrmPage = () => {
     setLoading(true)
     ;(async () => {
       try {
+        try {
+          await loadCustomers()
+        } catch {
+          setCustomers([])
+        }
+        try {
+          await loadAdminUsers()
+        } catch {
+          setAdminUsers([])
+        }
         if (tab === "lead") {
           await loadLeads()
         } else if (tab === "opportunity") {
@@ -679,8 +1107,8 @@ const CrmPage = () => {
         type: selectedTask.type,
         status: selectedTask.status,
         priority: selectedTask.priority,
-        due_date: selectedTask.due_date || "",
-        completed_at: selectedTask.completed_at || "",
+        start_at: selectedTask.start_at || selectedTask.due_date || "",
+        end_at: selectedTask.end_at || selectedTask.completed_at || "",
         owner_id: selectedTask.owner_id || "",
         customer_id: selectedTask.customer_id || "",
       })
@@ -692,8 +1120,8 @@ const CrmPage = () => {
         type: "todo",
         status: "open",
         priority: "medium",
-        due_date: "",
-        completed_at: "",
+        start_at: "",
+        end_at: "",
         owner_id: "",
         customer_id: "",
       })
@@ -729,6 +1157,34 @@ const CrmPage = () => {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : t("保存失败", "Save failed"))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const copyLead = async () => {
+    if (!selectedLead) {
+      setError(t("请先选择一条线索", "Select a lead first"))
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError("")
+      if (!leadForm.name || !leadForm.email || !leadForm.company || !leadForm.source) {
+        throw new Error(t("线索必填项：姓名 / 邮箱 / 公司 / 来源", "Lead required fields: name/email/company/source"))
+      }
+
+      await api(`/admin/crm/leads`, "POST", {
+        ...leadForm,
+        name: `${leadForm.name}${t(" 副本", " Copy")}`,
+        customer_id: leadForm.customer_id || undefined,
+      })
+      setMessage(t("线索已复制", "Lead copied"))
+      await loadLeads()
+      setLeadSearch("")
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("复制失败", "Copy failed"))
     } finally {
       setLoading(false)
     }
@@ -789,7 +1245,7 @@ const CrmPage = () => {
       setLoading(true)
       if (!opportunityForm.name || !opportunityForm.customer_id) {
         throw new Error(
-          t("商机必填项：名称 / 客户 ID", "Opportunity required fields: name/customer_id")
+          t("商机必填项：名称 / 客户", "Opportunity required fields: name/customer")
         )
       }
 
@@ -812,6 +1268,36 @@ const CrmPage = () => {
       await loadOpportunities()
     } catch (e) {
       setError(e instanceof Error ? e.message : t("保存失败", "Save failed"))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const copyOpportunity = async () => {
+    if (!selectedOpportunity) {
+      setError(t("请先选择一个商机", "Select an opportunity first"))
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError("")
+      if (!opportunityForm.name || !opportunityForm.customer_id) {
+        throw new Error(
+          t("商机必填项：名称 / 客户", "Opportunity required fields: name/customer")
+        )
+      }
+
+      await api(`/admin/crm/opportunities`, "POST", {
+        ...opportunityForm,
+        name: `${opportunityForm.name}${t(" 副本", " Copy")}`,
+        expected_close_date: opportunityForm.expected_close_date || undefined,
+        lead_id: opportunityForm.lead_id || undefined,
+      })
+      setMessage(t("商机已复制", "Opportunity copied"))
+      await loadOpportunities()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("复制失败", "Copy failed"))
     } finally {
       setLoading(false)
     }
@@ -845,8 +1331,8 @@ const CrmPage = () => {
         await api(`/admin/crm/tasks/${selectedTaskId}`, "PATCH", {
           ...taskForm,
           description: taskForm.description || null,
-          due_date: taskForm.due_date || null,
-          completed_at: taskForm.completed_at || null,
+          due_date: taskForm.start_at || null,
+          completed_at: taskForm.end_at || null,
           owner_id: taskForm.owner_id || null,
           customer_id: taskForm.customer_id || null,
         })
@@ -855,8 +1341,8 @@ const CrmPage = () => {
         await api(`/admin/crm/tasks`, "POST", {
           ...taskForm,
           description: taskForm.description || undefined,
-          due_date: taskForm.due_date || undefined,
-          completed_at: taskForm.completed_at || undefined,
+          due_date: taskForm.start_at || undefined,
+          completed_at: taskForm.end_at || undefined,
           owner_id: taskForm.owner_id || undefined,
           customer_id: taskForm.customer_id || undefined,
         })
@@ -866,6 +1352,37 @@ const CrmPage = () => {
       await loadTasks()
     } catch (e) {
       setError(e instanceof Error ? e.message : t("保存失败", "Save failed"))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const copyTask = async () => {
+    if (!selectedTask) {
+      setError(t("请先选择一个任务", "Select a task first"))
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError("")
+      if (!taskForm.title) {
+        throw new Error(t("任务必填项：标题", "Task required field: title"))
+      }
+
+      await api(`/admin/crm/tasks`, "POST", {
+        ...taskForm,
+        title: `${taskForm.title}${t(" 副本", " Copy")}`,
+        description: taskForm.description || undefined,
+        due_date: taskForm.start_at || undefined,
+        completed_at: taskForm.end_at || undefined,
+        owner_id: taskForm.owner_id || undefined,
+        customer_id: taskForm.customer_id || undefined,
+      })
+      setMessage(t("任务已复制", "Task copied"))
+      await loadTasks()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("复制失败", "Copy failed"))
     } finally {
       setLoading(false)
     }
@@ -996,6 +1513,10 @@ const CrmPage = () => {
               <input
                 style={inputStyle}
                 placeholder={t("搜索线索", "Search lead")}
+                name="crm-lead-search"
+                autoComplete="new-password"
+                spellCheck={false}
+                inputMode="search"
                 value={leadSearch}
                 onChange={(e) => setLeadSearch(e.target.value)}
               />
@@ -1058,6 +1579,10 @@ const CrmPage = () => {
               <input
                 style={inputStyle}
                 placeholder={t("搜索商机", "Search opportunity")}
+                name="crm-opportunity-search"
+                autoComplete="new-password"
+                spellCheck={false}
+                inputMode="search"
                 value={opportunitySearch}
                 onChange={(e) => setOpportunitySearch(e.target.value)}
               />
@@ -1088,7 +1613,9 @@ const CrmPage = () => {
                       <div style={{ fontWeight: 700, color: adminTheme.color.text }}>{op.name}</div>
                       <ObjectMark label="OP" tone="success" />
                     </div>
-                    <div style={{ fontSize: 12, color: adminTheme.color.textMuted }}>{op.customer_id}</div>
+                    <div style={{ fontSize: 12, color: adminTheme.color.textMuted }}>
+                      {customerOptionLabel(customerById.get(op.customer_id) ?? null) || op.customer_id}
+                    </div>
                     <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
                       <span style={badgeStyle(adminTheme.color.info)}>{opportunityStageLabel(op.stage)}</span>
                       <span style={badgeStyle(adminTheme.color.success)}>{String(op.estimated_amount)}</span>
@@ -1118,6 +1645,10 @@ const CrmPage = () => {
               <input
                 style={inputStyle}
                 placeholder={t("搜索任务", "Search task")}
+                name="crm-task-search"
+                autoComplete="new-password"
+                spellCheck={false}
+                inputMode="search"
                 value={taskSearch}
                 onChange={(e) => setTaskSearch(e.target.value)}
               />
@@ -1185,6 +1716,11 @@ const CrmPage = () => {
                 <input
                   style={inputStyle}
                   placeholder={t("邮箱", "Email")}
+                  name="crm-lead-email"
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   value={leadForm.email}
                   onChange={(e) => setLeadForm((v) => ({ ...v, email: e.target.value }))}
                 />
@@ -1212,17 +1748,26 @@ const CrmPage = () => {
                   <option value="qualified">{leadStatusLabel("qualified")}</option>
                   <option value="lost">{leadStatusLabel("lost")}</option>
                 </select>
-                <input
-                  style={inputStyle}
-                  placeholder={t("客户 ID", "Customer ID")}
+                <CustomerPicker
                   value={leadForm.customer_id}
-                  onChange={(e) => setLeadForm((v) => ({ ...v, customer_id: e.target.value }))}
+                  customers={customers}
+                  onChange={(next) => setLeadForm((v) => ({ ...v, customer_id: next }))}
+                  t={t}
                 />
               </div>
               <div style={actionRowStyle}>
                 <button type="button" style={primaryButtonStyle} onClick={() => void saveLead()}>
                   {selectedLead ? t("保存线索", "Save Lead") : t("创建线索", "Create Lead")}
                 </button>
+                {selectedLead ? (
+                  <button
+                    type="button"
+                    style={buttonStyle}
+                    onClick={() => void copyLead()}
+                  >
+                    {t("复制", "Copy")}
+                  </button>
+                ) : null}
                 {selectedLead ? (
                   <button
                     type="button"
@@ -1251,13 +1796,11 @@ const CrmPage = () => {
                       setConvertForm((v) => ({ ...v, estimated_amount: e.target.value }))
                     }
                   />
-                  <input
-                    style={inputStyle}
-                    placeholder={t("客户 ID", "Customer ID")}
+                  <CustomerPicker
                     value={convertForm.customer_id}
-                    onChange={(e) =>
-                      setConvertForm((v) => ({ ...v, customer_id: e.target.value }))
-                    }
+                    customers={customers}
+                    onChange={(next) => setConvertForm((v) => ({ ...v, customer_id: next }))}
+                    t={t}
                   />
                   <select
                     style={inputStyle}
@@ -1274,9 +1817,9 @@ const CrmPage = () => {
                 </div>
                 <div style={actionRowStyle}>
                   <input
+                    type="date"
                     style={{ ...inputStyle, maxWidth: 280 }}
-                    placeholder={t("预计成交日期", "Expected Close Date")}
-                    value={convertForm.expected_close_date}
+                    value={toDateInputValue(convertForm.expected_close_date)}
                     onChange={(e) =>
                       setConvertForm((v) => ({ ...v, expected_close_date: e.target.value }))
                     }
@@ -1331,13 +1874,11 @@ const CrmPage = () => {
                     setOpportunityForm((v) => ({ ...v, estimated_amount: e.target.value }))
                   }
                 />
-                <input
-                  style={inputStyle}
-                  placeholder={t("客户 ID", "Customer ID")}
+                <CustomerPicker
                   value={opportunityForm.customer_id}
-                  onChange={(e) =>
-                    setOpportunityForm((v) => ({ ...v, customer_id: e.target.value }))
-                  }
+                  customers={customers}
+                  onChange={(next) => setOpportunityForm((v) => ({ ...v, customer_id: next }))}
+                  t={t}
                 />
                 <select
                   style={inputStyle}
@@ -1352,18 +1893,22 @@ const CrmPage = () => {
                   <option value="closed_lost">{opportunityStageLabel("closed_lost")}</option>
                 </select>
                 <input
+                  type="date"
                   style={inputStyle}
-                  placeholder={t("预计成交日期", "Expected Close Date")}
-                  value={opportunityForm.expected_close_date}
+                  value={toDateInputValue(opportunityForm.expected_close_date)}
                   onChange={(e) =>
                     setOpportunityForm((v) => ({ ...v, expected_close_date: e.target.value }))
                   }
                 />
-                <input
-                  style={inputStyle}
-                  placeholder={t("线索 ID", "Lead ID")}
+                <RecordPicker
                   value={opportunityForm.lead_id}
-                  onChange={(e) => setOpportunityForm((v) => ({ ...v, lead_id: e.target.value }))}
+                  items={leads}
+                  getLabel={(lead) => leadOptionLabel(lead)}
+                  getSearchText={(lead) => [lead.name, lead.company, lead.email, lead.id].filter(Boolean).join(" ")}
+                  onChange={(next) => setOpportunityForm((v) => ({ ...v, lead_id: next }))}
+                  placeholder={t("搜索关联线索", "Search linked lead")}
+                  emptyLabel={t("没有匹配的线索", "No matching leads")}
+                  t={t}
                 />
               </div>
               <div style={actionRowStyle}>
@@ -1376,6 +1921,15 @@ const CrmPage = () => {
                     ? t("保存商机", "Save Opportunity")
                     : t("创建商机", "Create Opportunity")}
                 </button>
+                {selectedOpportunity ? (
+                  <button
+                    type="button"
+                    style={buttonStyle}
+                    onClick={() => void copyOpportunity()}
+                  >
+                    {t("复制", "Copy")}
+                  </button>
+                ) : null}
                 {selectedOpportunity ? (
                   <button
                     type="button"
@@ -1423,29 +1977,60 @@ const CrmPage = () => {
                   value={taskForm.title}
                   onChange={(e) => setTaskForm((v) => ({ ...v, title: e.target.value }))}
                 />
-                <input
-                  style={inputStyle}
-                  placeholder={t("描述", "Description")}
-                  value={taskForm.description}
-                  onChange={(e) => setTaskForm((v) => ({ ...v, description: e.target.value }))}
+                <CustomerPicker
+                  value={taskForm.customer_id}
+                  customers={customers}
+                  onChange={(next) => setTaskForm((v) => ({ ...v, customer_id: next }))}
+                  t={t}
                 />
-                <input
-                  style={inputStyle}
-                  placeholder={t("截止日期", "Due Date")}
-                  value={taskForm.due_date}
-                  onChange={(e) => setTaskForm((v) => ({ ...v, due_date: e.target.value }))}
-                />
-                <select
-                  style={inputStyle}
-                  value={taskForm.type}
-                  onChange={(e) => setTaskForm((v) => ({ ...v, type: e.target.value as Task["type"] }))}
-                >
-                  <option value="todo">{taskTypeLabel("todo")}</option>
-                  <option value="call">{taskTypeLabel("call")}</option>
-                  <option value="email">{taskTypeLabel("email")}</option>
-                  <option value="meeting">{taskTypeLabel("meeting")}</option>
-                  <option value="follow_up">{taskTypeLabel("follow_up")}</option>
-                </select>
+                <div style={{ ...fieldStackStyle, ...fullWidthFieldStyle }}>
+                  <div style={helperTextStyle}>
+                    {t("描述（最多 3000 字）", "Description (up to 3000 characters)")}
+                  </div>
+                  <textarea
+                    style={{ ...inputStyle, minHeight: 220, resize: "vertical", lineHeight: 1.5 }}
+                    rows={10}
+                    maxLength={3000}
+                    placeholder={t("输入任务说明、背景、沟通记录或下一步安排", "Enter task notes, background, communication record, or next steps")}
+                    value={taskForm.description}
+                    onChange={(e) => setTaskForm((v) => ({ ...v, description: e.target.value }))}
+                  />
+                </div>
+                
+                <div style={fieldStackStyle}>
+                  <div style={helperTextStyle}>{t("开始时间", "Start time")}</div>
+                  <input
+                    type="datetime-local"
+                    style={inputStyle}
+                    value={toDateTimeInputValue(taskForm.start_at)}
+                    onChange={(e) => setTaskForm((v) => ({ ...v, start_at: e.target.value }))}
+                  />
+                </div>
+                <div style={fieldStackStyle}>
+                  <div style={helperTextStyle}>{t("结束时间", "End time")}</div>
+                  <input
+                    type="datetime-local"
+                    style={inputStyle}
+                    value={toDateTimeInputValue(taskForm.end_at)}
+                    onChange={(e) =>
+                      setTaskForm((v) => ({ ...v, end_at: e.target.value }))
+                    }
+                  />
+                </div>
+                <div style={fieldStackStyle}>
+                  <div style={helperTextStyle}>{t("任务类型", "Task Type")}</div>
+                  <select
+                    style={inputStyle}
+                    value={taskForm.type}
+                    onChange={(e) => setTaskForm((v) => ({ ...v, type: e.target.value as Task["type"] }))}
+                  >
+                    <option value="todo">{taskTypeLabel("todo")}</option>
+                    <option value="call">{taskTypeLabel("call")}</option>
+                    <option value="email">{taskTypeLabel("email")}</option>
+                    <option value="meeting">{taskTypeLabel("meeting")}</option>
+                    <option value="follow_up">{taskTypeLabel("follow_up")}</option>
+                  </select>
+                </div>
                 <select
                   style={inputStyle}
                   value={taskForm.status}
@@ -1470,31 +2055,34 @@ const CrmPage = () => {
                   <option value="high">{taskPriorityLabel("high")}</option>
                   <option value="urgent">{taskPriorityLabel("urgent")}</option>
                 </select>
-                <input
-                  style={inputStyle}
-                  placeholder={t("负责人 ID", "Owner ID")}
+                <RecordPicker
                   value={taskForm.owner_id}
-                  onChange={(e) => setTaskForm((v) => ({ ...v, owner_id: e.target.value }))}
-                />
-                <input
-                  style={inputStyle}
-                  placeholder={t("客户 ID", "Customer ID")}
-                  value={taskForm.customer_id}
-                  onChange={(e) => setTaskForm((v) => ({ ...v, customer_id: e.target.value }))}
-                />
-                <input
-                  style={inputStyle}
-                  placeholder={t("完成时间", "Completed At")}
-                  value={taskForm.completed_at}
-                  onChange={(e) =>
-                    setTaskForm((v) => ({ ...v, completed_at: e.target.value }))
+                  items={adminUsers}
+                  getLabel={(user) => adminUserOptionLabel(user)}
+                  getSearchText={(user) =>
+                    [user.first_name, user.last_name, user.email, user.id].filter(Boolean).join(" ")
                   }
+                  onChange={(next) => setTaskForm((v) => ({ ...v, owner_id: next }))}
+                  placeholder={t("搜索负责人", "Search owner")}
+                  emptyLabel={t("没有匹配的用户", "No matching users")}
+                  t={t}
                 />
+                
+                
               </div>
               <div style={actionRowStyle}>
                 <button type="button" style={primaryButtonStyle} onClick={() => void saveTask()}>
                   {selectedTask ? t("保存任务", "Save Task") : t("创建任务", "Create Task")}
                 </button>
+                {selectedTask ? (
+                  <button
+                    type="button"
+                    style={buttonStyle}
+                    onClick={() => void copyTask()}
+                  >
+                    {t("复制", "Copy")}
+                  </button>
+                ) : null}
                 {selectedTask ? (
                   <button
                     type="button"
@@ -1510,21 +2098,46 @@ const CrmPage = () => {
                 <div style={{ ...sectionDividerStyle, display: "grid", gap: 8 }}>
                   <h4 style={{ margin: 0, color: adminTheme.color.text }}>{t("关联对象", "Related To")}</h4>
                   <div style={formGridThreeStyle}>
-                    <input
+                    <select
                       style={inputStyle}
-                      placeholder={t("关联类型", "Target type")}
                       value={taskRelationForm.target_type}
                       onChange={(e) =>
-                        setTaskRelationForm((v) => ({ ...v, target_type: e.target.value }))
+                        setTaskRelationForm((v) => ({ ...v, target_type: e.target.value, target_id: "" }))
                       }
-                    />
-                    <input
-                      style={inputStyle}
-                      placeholder={t("关联目标 ID", "Target ID")}
+                    >
+                      <option value="lead">{t("线索", "Lead")}</option>
+                      <option value="opportunity">{t("商机", "Opportunity")}</option>
+                      <option value="task">{t("任务", "Task")}</option>
+                    </select>
+                    <RecordPicker
                       value={taskRelationForm.target_id}
-                      onChange={(e) =>
-                        setTaskRelationForm((v) => ({ ...v, target_id: e.target.value }))
+                      items={
+                        taskRelationForm.target_type === "opportunity"
+                          ? opportunities
+                          : taskRelationForm.target_type === "task"
+                            ? tasks
+                            : leads
                       }
+                      getLabel={(item) =>
+                        taskRelationForm.target_type === "opportunity"
+                          ? opportunityOptionLabel(item as Opportunity)
+                          : taskRelationForm.target_type === "task"
+                            ? taskOptionLabel(item as Task)
+                            : leadOptionLabel(item as Lead)
+                      }
+                      getSearchText={(item) =>
+                        taskRelationForm.target_type === "opportunity"
+                          ? [item.name, item.id, item.customer_id].filter(Boolean).join(" ")
+                          : taskRelationForm.target_type === "task"
+                            ? [item.title, item.description || "", item.id].filter(Boolean).join(" ")
+                            : [item.name, item.company, item.email, item.id].filter(Boolean).join(" ")
+                      }
+                      onChange={(next) =>
+                        setTaskRelationForm((v) => ({ ...v, target_id: next }))
+                      }
+                      placeholder={t("搜索关联对象", "Search related record")}
+                      emptyLabel={t("没有匹配的对象", "No matching records")}
+                      t={t}
                     />
                     <input
                       style={inputStyle}
@@ -1554,7 +2167,13 @@ const CrmPage = () => {
                         }}
                       >
                       <div style={{ ...helperTextStyle, color: adminTheme.color.text }}>
-                          <strong>{relation.target_type}</strong> · {relation.target_id} · {relation.relationship}
+                          <strong>{relation.target_type}</strong> · {
+                            relation.target_type === "opportunity"
+                              ? opportunityOptionLabel(opportunities.find((item) => item.id === relation.target_id) ?? null) || relation.target_id
+                              : relation.target_type === "task"
+                                ? taskOptionLabel(tasks.find((item) => item.id === relation.target_id) ?? null) || relation.target_id
+                                : leadOptionLabel(leads.find((item) => item.id === relation.target_id) ?? null) || relation.target_id
+                          } · {relation.relationship}
                         </div>
                         <button
                           type="button"
@@ -1575,7 +2194,6 @@ const CrmPage = () => {
           ) : null}
         </div>
       </div>
-      <AdminLanguageDock />
     </div>
   )
 }

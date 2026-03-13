@@ -7,6 +7,17 @@ type PatchNativePageLayoutInput = {
   filterShellAttr?: string
 }
 
+export function syncAdminRouteBody(routePattern: RegExp, bodyRoute: string) {
+  if (routePattern.test(window.location.pathname)) {
+    document.body.dataset.adminRoute = bodyRoute
+    return
+  }
+
+  if (document.body.dataset.adminRoute === bodyRoute) {
+    delete document.body.dataset.adminRoute
+  }
+}
+
 function getMainCandidates() {
   return Array.from(
     document.querySelectorAll<HTMLElement>("main > div, [data-radix-scroll-area-viewport] > div > div")
